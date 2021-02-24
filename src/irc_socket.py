@@ -35,3 +35,11 @@ class IRCSocket:
         if resp.find('PING') != -1:
             self.irc.send(bytes('PONG ' + resp.split().decode("UTF-8") [1] + '\r\n', "UTF-8"))
         return resp
+
+    # add kill self functionality as per spec
+    def kill_self(self, channel):
+        self.irc.send(bytes(f'KILLED ON {channel} /n', "UTF-8"))
+        time.sleep(5)
+        self.irc.close()
+        return
+
