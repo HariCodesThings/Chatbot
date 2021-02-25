@@ -17,7 +17,7 @@ class IRCSocket:
     def connect(self, server, channel, botnick):
         # Connect to the server
         print("Connecting to: " + server)
-        self.irc.connect((server, 6667))
+        self.irc.connect((server, 6667)) #hard code port to 6667
 
         # Perform user authentication
         self.irc.send(bytes("USER " + botnick + " " + botnick +" " + botnick + " :python\n", "UTF-8"))
@@ -33,12 +33,13 @@ class IRCSocket:
         resp = self.irc.recv(2040).decode("UTF-8")
 
         if resp.find('PING') != -1:
-            self.irc.send(bytes('PONG ' + resp.split().decode("UTF-8") [1] + '\r\n', "UTF-8"))
+            self.irc.send(bytes('PONG ' + resp.split()[1] + '\r\n', "UTF-8"))
         return resp
 
     # add kill self functionality as per spec
     def kill_self(self, channel):
         self.irc.send(bytes(f'KILLED ON {channel} /n', "UTF-8"))
+        print(f'KILLED ON {channel} /n')
         time.sleep(5)
         self.irc.close()
         return
