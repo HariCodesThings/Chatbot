@@ -9,14 +9,22 @@ botnick = "Nick"
 irc = IRCSocket()
 irc.connect(server, channel, botnick)
 
+
+
+
+
 while True:
     text = irc.get_response()
     print(text)
  
-    if "PRIVMSG" in text and channel in text and "hello" in text:
-        irc.send(channel, "Hello!")
-    
-    if "PRIVMSG" in text and channel in text and "die" in text:
-        irc.send(channel, "Dying!")
-        irc.kill_self(channel)
+    if self.checkMsg(text) and "hello" in text:
+            self.irc.send(self.channel, "Hello!")
+
+    if self.checkMsg(text) and "die" in text:
+        self.irc.send(self.channel, "Dying!")
+        self.irc.kill_self()
         exit()
+
+
+def checkMsg(self, text):
+    return "PRIVMSG" in text and self.channel in text and self.name in text and ":" in text
