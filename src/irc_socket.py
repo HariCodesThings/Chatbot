@@ -12,7 +12,7 @@ class IRCSocket:
 
     def send(self, channel, msg):
         # Transfer data
-        self.irc.send(bytes("PRIVMSG " + channel + " " + msg + "\n", "UTF-8"))
+        self.irc.send(bytes(f"PRIVMSG {channel} : {msg}\n", "UTF-8"))
 
     def connect(self, server, channel, botnick):
         # Connect to the server
@@ -20,12 +20,12 @@ class IRCSocket:
         self.irc.connect((server, 6667)) #hard code port to 6667
 
         # Perform user authentication
-        self.irc.send(bytes("USER " + botnick + " " + botnick +" " + botnick + " :python\n", "UTF-8"))
-        self.irc.send(bytes("NICK " + botnick + "\n", "UTF-8"))
+        self.irc.send(bytes(f"USER {botnick} {botnick} {botnick} :python\n", "UTF-8"))
+        self.irc.send(bytes(f"NICK {botnick}\n", "UTF-8"))
         time.sleep(5)
 
         # join the channel
-        self.irc.send(bytes("JOIN " + channel + "\n", "UTF-8"))
+        self.irc.send(bytes(f"JOIN {channel}\n", "UTF-8"))
 
     def get_response(self):
         time.sleep(1)
