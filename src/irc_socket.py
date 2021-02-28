@@ -46,4 +46,3 @@ class IRCSocket:
         time.sleep(3)
         self.irc.close()
         return
-

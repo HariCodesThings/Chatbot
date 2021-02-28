@@ -15,8 +15,9 @@ class State:
     END = 8
 
 class ChatBot: # init here
-    bot_state = State.START
-    bot_response = ""
+    def __init__(self):
+        self.bot_state = State.START
+        self.bot_response = ""
 
     def switch_state(state):
         pass
@@ -26,4 +27,4 @@ class ChatBot: # init here
         while seconds_elapse != 30 or check_msg() == None:
             time.sleep(1)
             seconds_elapsed += 1
-        
+    
