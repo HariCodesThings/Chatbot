@@ -1,7 +1,13 @@
 from irc_socket import *
 import os
 import random
+import time 
 
+
+import nltk
+from nltk.chat.util import Chat, reflections
+
+from scratch_botwork import *
 
 server = "irc.freenode.net"  # Provide a valid server IP/Hostname
 channel = "#CSC482"
