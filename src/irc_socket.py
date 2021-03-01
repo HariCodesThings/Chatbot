@@ -1,8 +1,9 @@
 import socket
-import sys
 import time
-import re
 import select
+import sys
+import re
+
 
 class IRCSocket:
 
@@ -36,9 +37,13 @@ class IRCSocket:
         # join the channel
         self.irc.send(bytes(f"JOIN {channel}\n", "UTF-8"))
 
-    def poll_response(self):
+    def poll_read_response(self):
         rlist, wlist, xlist = select.select([self.irc], [], [], 1)
         return len(rlist) > 0
+
+    def poll_write_response(self):
+        rlist, wlist, xlist = select.select([], [self.irc], [], 1)
+        return len(wlist) > 0
 
     def get_response(self):
         time.sleep(1)
@@ -66,3 +71,4 @@ class IRCSocket:
         time.sleep(3)
         self.irc.close()
         return
+
