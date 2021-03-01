@@ -4,7 +4,34 @@ import random
 import time
 from statemachine import StateMachine, State
 
+initial_outreach = random.choice(["Hi","Hello", "Hey there", "Howdy", "Yoooo", "Hey", "Welcome"])
 
+pairs_outreach = { 
+    "hi" : ["What's up?" "How's it going", "What's happening?"],
+    "hey" : ["What's up?" "How's it going", "What's happening?"],
+    "hello" : ["What's up?" "How's it going", "What's happening?"],
+    "yo" : ["What's up?" "How's it going", "What's happening?"],
+    "hey there" : ["What's up?" "How's it going", "What's happening?"],
+    "welcome" : ["What's up?" "How's it going", "What's happening?"],
+    "yoooo" : ["What's up?" "How's it going", "What's happening?"]
+}
+
+pairs_response = { 
+    "hi" : ["Hello", "Hey there", "Howdy", "Yoooo", "Hey", "Welcome"],
+    "hey" : ["Hello", "Hey there", "Howdy", "Yoooo", "Hey", "Welcome"],
+    "hello" : ["Hello", "Hey there", "Howdy", "Yoooo", "Hey", "Welcome"],
+    "hiii" :  ["Hello", "Hey there", "Howdy", "Yoooo", "Hey", "Welcome"],
+    "yo" : ["Hello", "Hey there", "Howdy", "Yoooo", "Hey", "Welcome"],
+    "howdy" : ["Hello", "Hey there", "Howdy", "Yoooo", "Hey", "Welcome"],
+    "what's up" : ["I'm good", "I'm fine, thanks", "Nothing much", "Great"],
+    "how's it going" : ["I'm good", "I'm fine, thanks", "Nothing much", "Great"],
+    "what's happening" : ["I'm good", "I'm fine, thanks", "Nothing much", "Great"]
+}
+
+get_next_outreach = lambda utterance : random.choice(pairs_outreach[utterance])
+get_next_response = lambda utterance : random.choice(pairs_response[utterance])
+
+# print(get_next_response('hello'))
 
 
 def main():
@@ -61,8 +88,6 @@ class ChatBot: # init here
         self.botnick = botnick
         self.irc = IRCSocket()
         self.irc.connect(server, channel, botnick)
-        
-
 
     def init_bot(self):
         while True:
@@ -86,6 +111,8 @@ class ChatBot: # init here
     def check_msg(self, _text):
         return "PRIVMSG" in _text and self.channel in _text and self.botnick + ":" in _text
 
+    def clean_text(self,text):
+        pass
 
     def get_timed_response(self):
         seconds_elapsed = 0
@@ -98,6 +125,7 @@ class ChatBot: # init here
                 if text and self.check_msg(text):
                     break
             seconds_elapsed += 1
+        seconds_elapsed = 0
         return text
 
 
@@ -129,27 +157,45 @@ class ChatBot: # init here
             #     self.irc.kill_self(channel)
             #     exit()
 
-    def initial_outreach_state(self):
-        text = self.get_timed_response()
+    def start_state(self):
+        text = self.get_timed_response() # first 30 seconds 
         if not text:
+            self.awaiting_response = True
             self.target = random.choice(list(self.users))
             print(f"reaching out to {self.target}")
-            self.irc.send_dm(self.channel, self.target, "Hello")  # replace with more options
+            self.bot_state.reach_out()
+
+        else:
+            print(text)
+            self.awaiting_response = False
+            self.bot_state.response()
+            # TODO parse put and set target to who replied to you
+
+    def initial_outreach_state(self):
+        self.irc.send_dm(self.channel, self.target, "Hello")  # replace with more options
+        text = self.get_timed_response() # first 30 seconds 
+        if not text:
+            self.awaiting_response = True
             self.bot_state.no_reply_one()
         else:
+            print(text)
+            self.awaiting_response = False
             self.bot_state.response()
 
     def secondary_outreach_state(self):
-        text = self.get_timed_response()
+        self.irc.send_dm(self.channel, self.target, "Hello?????")  # replace with more options
+        text = self.get_timed_response() # first 30 seconds check
         if not text:
-            self.irc.send_dm(self.channel, self.target, "Hello?????")  # replace with more options
+            self.awaiting_response = True
             self.bot_state.no_reply_after_second()
         else:
+            print(text)
+            self.awaiting_response = False
             self.bot_state.second_response()
 
     def outreach_reply_state(self):
         print("In outreach reply state")
-
+        self.irc.kill_self(self.channel)
 
     def giveup_state(self):
         self.irc.send_dm(self.channel, self.target, "Well bye then")
