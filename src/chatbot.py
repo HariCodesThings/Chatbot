@@ -115,7 +115,8 @@ class ChatBot: # init here
                 self.outreach_reply_state()
             elif self.bot_state.is_giveup_frustrated:
                 self.giveup_state()
-            # elif self.bot_state.is_
+            elif self.bot_state.is_end:
+                self.end_state()
             else:
                 print("State error")
 
@@ -156,6 +157,9 @@ class ChatBot: # init here
         self.bot_state.giveup_end()
 
         # maybe kill
+
+    def end_state(self):
+        self.irc.kill_self()
 
 if __name__ == "__main__":
     main()
