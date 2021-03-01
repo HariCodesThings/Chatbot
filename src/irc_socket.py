@@ -17,6 +17,10 @@ class IRCSocket:
         self.irc.send(bytes(f"PRIVMSG {channel} : {msg}\n", "UTF-8"))
         time.sleep(3)
 
+    def send_dm(self, channel, user, msg):
+        self.irc.send(bytes(f"PRIVMSG {channel} {user} : {msg}\n", "UTF-8"))
+        time.sleep(3)
+
     def connect(self, server, channel, botnick):
         # Connect to the server
         print("Connecting to: " + server)
@@ -34,7 +38,7 @@ class IRCSocket:
         time.sleep(1)
         # Get the response
         resp = self.irc.recv(2040).decode("UTF-8")
-        print(resp)
+        # print(resp)
 
         if resp.find('PING') != -1:
             self.irc.send(bytes('PONG ' + resp.split()[1] + '\r\n', "UTF-8"))
@@ -44,8 +48,10 @@ class IRCSocket:
         time.sleep(1)
         self.irc.send(bytes(f"NAMES {channel}\n", "UTF-8"))
         text = self.get_response()
-        re.match(r"")
-        print(text)
+        re.findall(r"", text)
+        text = text[text.index(channel):text.index("\n")]
+        text = text.split()[1:]
+        # print(text)
         return text
 
     # add kill self functionality as per spec
