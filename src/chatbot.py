@@ -115,6 +115,7 @@ class ChatBot: # init here
                 self.outreach_reply_state()
             elif self.bot_state.is_giveup_frustrated:
                 self.giveup_state()
+            # elif self.bot_state.is_
             else:
                 print("State error")
 
@@ -143,7 +144,7 @@ class ChatBot: # init here
             self.irc.send_dm(self.channel, self.target, "Hello?????")  # replace with more options
             self.bot_state.no_reply_after_second()
         else:
-            self.bot_state.response()
+            self.bot_state.second_response()
 
     def outreach_reply_state(self):
         print("In outreach reply state")
