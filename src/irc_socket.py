@@ -1,6 +1,7 @@
 import socket
 import sys
 import time
+import re
 
 
 class IRCSocket:
@@ -38,6 +39,14 @@ class IRCSocket:
         if resp.find('PING') != -1:
             self.irc.send(bytes('PONG ' + resp.split()[1] + '\r\n', "UTF-8"))
         return resp
+
+    def get_names(self, channel):
+        time.sleep(1)
+        self.irc.send(bytes(f"NAMES {channel}\n", "UTF-8"))
+        text = self.get_response()
+        re.match(r"")
+        print(text)
+        return text
 
     # add kill self functionality as per spec
     def kill_self(self, channel):

@@ -11,6 +11,20 @@ botnick = "BotNickPython"
 irc = IRCSocket()
 irc.connect(server, channel, botnick)
 
+
+def main():
+    irc.get_names(channel)
+    count = 0
+    while True:
+        text = irc.get_response()
+        # print(f"{count} output: {text}")
+        count += 1
+
+    bot = ChatBot()
+    # bot.run_bot()
+
+
+
 # state keeps track of where in the discourse we are? : Greeting Protocol
 class ChatState(StateMachine):
     start = State('START', initial=True)
@@ -24,7 +38,7 @@ class ChatState(StateMachine):
     giveup_frustrated = State('GIVEUP_FRUSTRATED')
     end = State('END')
 
-    reply = start.to(initial_outreach)
+    reach_out = start.to(initial_outreach)
     response = initial_outreach.to(outreach_reply)
     no_reply_one = initial_outreach.to(secondary_outreach)
     no_reply_after_second = secondary_outreach.to(giveup_frustrated)
@@ -39,21 +53,28 @@ class ChatState(StateMachine):
     happy_end = inquiry_reply_two.to(end)
     giveup_end = giveup_frustrated.to(end)
 
+    def on_enter_start(self):
+        print("----------- FSM start ---------------")
+
+    def on_enter_initial_outreach(self):
+        print("------------ intial outreach  -------------")
+
     
 class ChatBot: # init here
     def __init__(self):
-        self.bot_state = ChatState.start
+        self.bot_state = ChatState()
         self.bot_response = ""
         self.awaiting_response = False
 
 
-    def check_msg(_text):
+    def check_msg(self, _text):
         return "PRIVMSG" in _text and channel in _text and botnick + ":" in _text
 
 
     @property
-    def get_timed_response():
+    def get_timed_response(self):
         seconds_elapsed = 0
+        text = None
         while seconds_elapsed != 30:
             text = irc.get_response()
             if text:
@@ -62,13 +83,20 @@ class ChatBot: # init here
         return text
 
 
-    def start_logic():
-        text = get_timed_response()
-        if text:
-            # Go to next state after getting data
-            pass
-        else:
-            # Hello Anyone there?
+    def run_bot(self):
+        while self.bot_state.state != ChatState.end:
+            # text = irc.get_response()
+            text = self.get_timed_response()
+            if self.check_msg(text):
+                pass
+
+            if self.check_msg(text) and "hello" in text.lower():
+                irc.send(channel, "Hello!")
+
+            if self.check_msg(text) and "die" in text.lower():
+                irc.send(channel, "Dying!")
+                irc.kill_self(channel)
+                exit()
 
     def get_state(self):
         while True:
@@ -76,13 +104,18 @@ class ChatBot: # init here
                 start_logic(chatbot)
 
 
-    while True:
-        text = irc.get_response()
-        if check_msg(text) and "hello" in text.lower():
-            irc.send(channel, "Hello!")
+    # while True:
+    #     text = irc.get_response()
+    #     if self.check_msg(text) and "hello" in text.lower():
+    #         irc.send(channel, "Hello!")
+    #
+    #     if self.check_msg(text) and "die" in text.lower():
+    #         irc.send(channel, "Dying!")
+    #         irc.kill_self(channel)
+    #         exit()
 
-        if check_msg(text) and "die" in text.lower():
-            irc.send(channel, "Dying!")
-            irc.kill_self(channel)
-            exit()
+
+
+if __name__ == "__main__":
+    main()
 
