@@ -55,7 +55,7 @@ class ChatState(StateMachine):
     end = State('END')
 
     reach_out = start.to(initial_outreach)
-    response = initial_outreach.to(outreach_reply)
+    response = initial_outreach.to(outreach_reply) | start.to(outreach_reply) 
     no_reply_one = initial_outreach.to(secondary_outreach)
     no_reply_after_second = secondary_outreach.to(giveup_frustrated)
     second_response = secondary_outreach.to(outreach_reply)
@@ -88,6 +88,7 @@ class ChatBot: # init here
         self.botnick = botnick
         self.irc = IRCSocket()
         self.irc.connect(server, channel, botnick)
+        self.user_text = ""
 
     def init_bot(self):
         while True:
@@ -111,9 +112,11 @@ class ChatBot: # init here
     def check_msg(self, _text):
         return "PRIVMSG" in _text and self.channel in _text and self.botnick + ":" in _text
 
-    def clean_text(self,text):
-        pass
-
+    def get_user_text(self,text):
+        self.user_text = text[text.index(self.botnick)+
+                                len(self.botnick)+1:text.index("\n")].strip() # +1 to get rid of colon
+        print(self.user_text)
+    
     def get_timed_response(self):
         seconds_elapsed = 0
         text = None
@@ -134,7 +137,7 @@ class ChatBot: # init here
             print(f"state: {self.bot_state}")
             # append name list
             if self.bot_state.is_start:
-                self.bot_state.reach_out()
+                self.start_state()
             elif self.bot_state.is_initial_outreach:
                 self.initial_outreach_state()
             elif self.bot_state.is_secondary_outreach:
@@ -148,9 +151,6 @@ class ChatBot: # init here
             else:
                 print("State error")
 
-
-            # if self.check_msg(text) and "hello" in text.lower():
-            #     self.irc.send(channel, "Hello!")
             #
             # if self.check_msg(text) and "die" in text.lower():
             #     self.irc.send(channel, "Dying!")
@@ -166,7 +166,7 @@ class ChatBot: # init here
             self.bot_state.reach_out()
 
         else:
-            print(text)
+            self.get_user_text(text)
             self.awaiting_response = False
             self.bot_state.response()
             # TODO parse put and set target to who replied to you
@@ -178,7 +178,8 @@ class ChatBot: # init here
             self.awaiting_response = True
             self.bot_state.no_reply_one()
         else:
-            print(text)
+            # print(text)
+            self.get_user_text(text)
             self.awaiting_response = False
             self.bot_state.response()
 
@@ -189,13 +190,14 @@ class ChatBot: # init here
             self.awaiting_response = True
             self.bot_state.no_reply_after_second()
         else:
-            print(text)
+            self.get_user_text(text)
             self.awaiting_response = False
             self.bot_state.second_response()
 
     def outreach_reply_state(self):
         print("In outreach reply state")
         self.irc.kill_self(self.channel)
+        exit()
 
     def giveup_state(self):
         self.irc.send_dm(self.channel, self.target, "Well bye then")

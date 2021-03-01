@@ -54,7 +54,6 @@ class IRCSocket:
         time.sleep(1)
         self.irc.send(bytes(f"NAMES {channel}\n", "UTF-8"))
         text = self.get_response()
-        re.findall(r"", text)
         text = text[text.index(channel):text.index("\n")]
         text = text.split()[1:]
         # print(text)
@@ -62,8 +61,8 @@ class IRCSocket:
 
     # add kill self functionality as per spec
     def kill_self(self, channel):
-        self.irc.send(bytes(f'KILLED ON {channel} /n', "UTF-8"))
-        print(f'KILLED ON {channel} /n')
+        self.irc.send(bytes(f'KILLED ON {channel} \n', "UTF-8"))
+        print(f'KILLED ON {channel} \n')
         time.sleep(3)
         self.irc.close()
         return
