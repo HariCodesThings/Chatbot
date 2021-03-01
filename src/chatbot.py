@@ -159,7 +159,7 @@ class ChatBot: # init here
         # maybe kill
 
     def end_state(self):
-        self.irc.kill_self()
+        self.irc.kill_self(self.channel)
 
 if __name__ == "__main__":
     main()
