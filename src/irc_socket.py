@@ -2,7 +2,7 @@ import socket
 import sys
 import time
 import re
-
+import select
 
 class IRCSocket:
 
@@ -11,6 +11,7 @@ class IRCSocket:
     def __init__(self):
         # Define the socket
         self.irc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.irc.settimeout(30)
 
     def send(self, channel, msg):
         # Transfer data
@@ -18,7 +19,7 @@ class IRCSocket:
         time.sleep(3)
 
     def send_dm(self, channel, user, msg):
-        self.irc.send(bytes(f"PRIVMSG {channel} {user} : {msg}\n", "UTF-8"))
+        self.irc.send(bytes(f"PRIVMSG {channel}: {user}: {msg}\n", "UTF-8"))
         time.sleep(3)
 
     def connect(self, server, channel, botnick):
@@ -33,6 +34,10 @@ class IRCSocket:
 
         # join the channel
         self.irc.send(bytes(f"JOIN {channel}\n", "UTF-8"))
+
+    def poll_response(self):
+        rlist, wlist, xlist = select.select([self.irc], [], [], 1)
+        return len(rlist) > 0
 
     def get_response(self):
         time.sleep(1)

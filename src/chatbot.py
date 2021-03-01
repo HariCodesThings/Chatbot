@@ -91,15 +91,19 @@ class ChatBot: # init here
         seconds_elapsed = 0
         text = None
         while seconds_elapsed != 30:
-            text = self.irc.get_response()
-            if text and self.check_msg(text):
-                break
+            if seconds_elapsed % 5 == 0:
+                print(f"{seconds_elapsed} tries")
+            if self.irc.poll_response():
+                text = self.irc.get_response()
+                if text and self.check_msg(text):
+                    break
             seconds_elapsed += 1
         return text
 
 
     def run_bot(self):
         while self.bot_state != ChatState.end:
+            print(f"state: {self.bot_state}")
             # append name list
             if self.bot_state.is_start:
                 self.bot_state.reach_out()
@@ -126,7 +130,8 @@ class ChatBot: # init here
     def initial_outreach_state(self):
         text = self.get_timed_response()
         if not text:
-            self.target = random.choice(self.users)
+            self.target = random.choice(list(self.users))
+            print(f"reaching out to {self.target}")
             self.irc.send_dm(self.channel, self.target, "Hello")  # replace with more options
             self.bot_state.no_reply_one()
         else:
@@ -146,6 +151,8 @@ class ChatBot: # init here
 
     def giveup_state(self):
         self.irc.send_dm(self.channel, self.target, "Well bye then")
+        
+        self.bot_state.giveup_end()
 
         # maybe kill
 
