@@ -32,6 +32,14 @@ pairs_response = {
                        ("Nothing much", "You?"), ("Great", "What about you?")],
     "what's happening": [("I'm good", "How are you?"), ("I'm fine, thanks", "And you?"),
                          ("Nothing much", "You?"), ("Great", "What about you?")],
+    "you?" : [("I'm good", "How are you?"), ("I'm fine, thanks", "And you?"),
+                  ("Nothing much", "You?"), ("Great", "What about you?")],
+    "how are you?" : [("I'm good", "How are you?"), ("I'm fine, thanks", "And you?"),
+                  ("Nothing much", "You?"), ("Great", "What about you?")],
+    "and you?" : [("I'm good", "How are you?"), ("I'm fine, thanks", "And you?"),
+                  ("Nothing much", "You?"), ("Great", "What about you?")],
+    "What about you?" : [("I'm good", "How are you?"), ("I'm fine, thanks", "And you?"),
+                  ("Nothing much", "You?"), ("Great", "What about you?")],
 }
 
 get_next_outreach = lambda utterance: random.choice(pairs_outreach[utterance])
