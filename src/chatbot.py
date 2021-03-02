@@ -8,13 +8,13 @@ from statemachine import StateMachine, State
 # when chatbot is speaker one
 initial_outreach = random.choice(["Hi", "Hello", "Hey there", "Howdy", "Yoooo", "Hey", "Welcome"])
 pairs_outreach = {
-    "hi" : ["What's up?", "How's it going", "What's happening?"],
-    "hey" : ["What's up?", "How's it going", "What's happening?"],
-    "hello" : ["What's up?", "How's it going", "What's happening?"],
-    "yo" : ["What's up?", "How's it going", "What's happening?"],
-    "hey there" : ["What's up?", "How's it going", "What's happening?"],
-    "welcome" : ["What's up?", "How's it going", "What's happening?"],
-    "yoooo" : ["What's up?", "How's it going", "What's happening?"]
+    "hi": ["What's up?", "How's it going", "What's happening?"],
+    "hey": ["What's up?", "How's it going", "What's happening?"],
+    "hello": ["What's up?", "How's it going", "What's happening?"],
+    "yo": ["What's up?", "How's it going", "What's happening?"],
+    "hey there": ["What's up?", "How's it going", "What's happening?"],
+    "welcome": ["What's up?", "How's it going", "What's happening?"],
+    "yoooo": ["What's up?", "How's it going", "What's happening?"]
 }
 
 
@@ -46,16 +46,16 @@ def main():
     bot.run_bot()
 
 
-# state keeps track of where in the discourse we are? : Greeting Protocol
+# state keeps track of where in the discourse we are
 class ChatState(StateMachine):
     start = State('START', initial=True)
     initial_outreach = State('INITIAL_OUTREACH')
     secondary_outreach = State('SECONDARY_OUTREACH')
     outreach_reply = State('OUTREACH_REPLY')
     inquiry = State('INQUIRY')
+    # this is a super state that encapsulates inquiry reply and inquiry of speaker two
+    inquiry_super = State('INQUIRY_SUPER')
     inquiry_reply = State('INQUIRY_REPLY')
-    inquiry_two = State('INQUIRY_TWO')
-    inquiry_reply_two = State('INQUIRY_REPLY_TWO')
     giveup_frustrated = State('GIVEUP_FRUSTRATED')
     end = State('END')
 
@@ -63,27 +63,20 @@ class ChatState(StateMachine):
     response = initial_outreach.to(outreach_reply) | start.to(outreach_reply)
     no_reply_one = initial_outreach.to(secondary_outreach)
     no_reply_after_second = secondary_outreach.to(giveup_frustrated)
+    retry_secondary = secondary_outreach.to(secondary_outreach)
     second_response = secondary_outreach.to(outreach_reply)
     retry_outreach = outreach_reply.to(outreach_reply)
     no_inquiry = outreach_reply.to(giveup_frustrated)
     inquiry_given = outreach_reply.to(inquiry)
-    inquiry_response = inquiry.to(inquiry_reply)
-    to_next_inquiry = inquiry_reply.to(inquiry_two)
-    to_next_inquiry_reply = inquiry_two.to(inquiry_reply_two)
+    inquiry_response = inquiry.to(inquiry_super)
+    retry_inquiry = inquiry.to(inquiry)
+    to_next_inquiry = inquiry_super.to(inquiry_reply)
     ignore_after_inquiry = inquiry.to(giveup_frustrated)
-    ignore_after_inquiry_two = inquiry_two.to(giveup_frustrated)
-    happy_end = inquiry_reply_two.to(end) | inquiry_reply.to(end)
+    ignore_after_inquiry_two = inquiry_super.to(giveup_frustrated)
+    happy_end = inquiry_reply.to(end)
     giveup_end = giveup_frustrated.to(end)
-    restart = start.from_(start, initial_outreach, secondary_outreach, outreach_reply, inquiry, inquiry_reply,
-                          inquiry_two, inquiry_reply_two, giveup_frustrated, end)
-
-
-
-    def on_enter_start(self):
-        print("----------- FSM start ---------------")
-
-    def on_enter_initial_outreach(self):
-        print("------------ intial outreach  -------------")
+    restart = start.from_(start, initial_outreach, secondary_outreach, outreach_reply, inquiry,
+                          inquiry_reply, inquiry_super, giveup_frustrated, end)
 
 
 class ChatBot: # init here
@@ -149,7 +142,6 @@ class ChatBot: # init here
         else:
             pass
 
-
     def get_timed_response(self):
         seconds_elapsed = 0
         text = None
@@ -163,7 +155,6 @@ class ChatBot: # init here
                         if self.check_msg(line) and self.get_user_text(line):
                             return line
                     text = None
-
             seconds_elapsed += 1
         return text
 
@@ -182,15 +173,16 @@ class ChatBot: # init here
                 self.outreach_reply_state()
             elif self.bot_state.is_inquiry:
                 self.inquiry_state()
+            elif self.bot_state.is_inquiry_super:
+                self.inquiry_state()
             elif self.bot_state.is_inquiry_reply:
-                self.inquiry_two_state()
+                self.inquiry_reply_state()
             elif self.bot_state.is_giveup_frustrated:
                 self.giveup_state()
             elif self.bot_state.is_end:
                 self.end_state()
             else:
                 print("State error")
-
 
     def wait_for_text(self, no_message_func, has_message_func):
         text = self.get_timed_response()  # first 30 seconds
@@ -204,77 +196,111 @@ class ChatBot: # init here
         return self.awaiting_response
 
     def start_state(self):
-        self.target = ""
-                                                 # we are speaker one,    we are speaker two
-        self.spoke_first = self.wait_for_text(self.bot_state.reach_out, self.bot_state.response)
-        if self.spoke_first:
-            self.target = random.choice(list(self.users))
-            print(f"reaching out to {self.target}")
+        self.bot_state.reach_out()
 
     def initial_outreach_state(self):
         # we are always speaker one
-        self.irc.send_dm(self.channel, self.target, initial_outreach)  # replace with more options
-        self.wait_for_text(self.bot_state.no_reply_one, self.bot_state.response)
+        self.target = ""
+        #                                     we are speaker one,          we are speaker two
+        self.spoke_first = self.wait_for_text(self.bot_state.no_reply_one, self.bot_state.response)
+        if self.spoke_first:
+            self.target = random.choice(list(self.users))
+            print(f"reaching out to {self.target}")
+            self.irc.send_dm(self.channel, self.target, initial_outreach)  # replace with more options
 
     def secondary_outreach_state(self):
-        self.irc.send_dm(self.channel, self.target, "Hello?????")  # replace with more options
-        self.wait_for_text(self.bot_state.no_reply_after_second, self.bot_state.second_response)
+        if self.wait_for_text(self.bot_state.retry_secondary, self.bot_state.second_response):
+            self.irc.send_dm(self.channel, self.target, "Hello?????")  # replace with more options
+            self.wait_for_text(self.bot_state.no_reply_after_second, self.bot_state.second_response)
 
     def outreach_reply_state(self):
-        print("In outreach reply state")
         if self.spoke_first:  # we are speaker one
             max_retries = 3
             if self.user_text in pairs_outreach.keys():
                 resp = get_next_outreach(self.user_text)  # should look like a question
                 self.bot_state.inquiry_given()
-            else:
+                self.retries = 0
+                self.irc.send_dm(self.channel, self.target, resp)
+            elif self.retries <= max_retries:
                 resp = "Try again"  # TODO change to enum that has confused phrases
-                if self.retries <= max_retries:
-                    self.wait_for_text(self.bot_state.retry_outreach, self.bot_state.inquiry_given)
-                    self.retries += 1
+                self.irc.send_dm(self.channel, self.target, resp)
+                self.wait_for_text(self.bot_state.retry_outreach, self.bot_state.retry_outreach)
+                if self.awaiting_response:
+                    return
+                self.retries += 1
+            else:
+                self.bot_state.no_inquiry()
         else:  # we are speaker two
-            time.sleep(1)
             if self.user_text in pairs_response.keys():
-                resp = get_next_response(self.user_text)  # hi or hi and question if they asked a question
+                # hi or hi and question if they asked a question
+                resp = get_next_response(self.user_text)
                 self.bot_state.inquiry_given()
                 if isinstance(resp, tuple):
-                    resp = resp[1] # question
-                    answer = resp[0]
-                    self.irc.send_dm(self.channel, self.target, answer) # send answer
+                    self.bot_response = resp
+                    return  # they asked a question; skipping
+                else:
+                    self.irc.send_dm(self.channel, self.target, resp)
             else:
                 # TODO check for unique questions (phase 3)
                 resp = "What are you trying to say?"  # TODO change to confused
+                self.irc.send_dm(self.channel, self.target, resp)
 
-        self.irc.send_dm(self.channel, self.target, resp)
+        # self.irc.send_dm(self.channel, self.target, resp)
 
     def inquiry_state(self):
-        print("In inquiry state")
-        # bot just asked a question
-        self.wait_for_text(self.bot_state.ignore_after_inquiry, self.bot_state.inquiry_response)
-        if self.spoke_first and not self.awaiting_response:
-            self.wait_for_text(self.bot_state.ignore_after_inquiry,
-                               self.bot_state.happy_end)  # return text should be a question
+        if self.spoke_first:
+            # bot just asked a question
+            self.wait_for_text(self.bot_state.ignore_after_inquiry, self.bot_state.inquiry_response)
+            if self.awaiting_response:
+                return
+            self.wait_for_text(self.bot_state.ignore_after_inquiry_two, self.bot_state.to_next_inquiry)
             if self.user_text in pairs_response.keys():
                 resp = get_next_response(self.user_text)
                 # self.bot_state.inquiry_response()
                 if isinstance(resp, tuple):
-                    resp = resp[0]
-
-                self.irc.send_dm(self.channel, self.target, resp)  # send im good-like
+                    answer = resp[0]
+                    self.irc.send_dm(self.channel, self.target, answer)  # send reply
             else:
-                resp = "What" # TODO more confused
+                resp = "What"  # TODO more confused
                 self.irc.send_dm(self.channel, self.target, resp)
+        elif self.bot_response:
+            if isinstance(self.bot_response, tuple):
+                answer = self.bot_response[0]
+                question = self.bot_response[1]  # question
+                self.irc.send_dm(self.channel, self.target, answer)
+                time.sleep(3)
+                self.irc.send_dm(self.channel, self.target, question)
         else:
-            # done
-            # TODO check if text is another question (phase 3)
-            self.bot_state.happy_end()
-        # self.normalize_response()
+            self.wait_for_text(self.bot_state.ignore_after_inquiry, self.bot_state.inquiry_response)
+            if self.awaiting_response:
+                return
+            if self.user_text in pairs_response.keys():
+                # question if they asked a question
+                resp = get_next_response(self.user_text)
+                self.bot_state.to_next_inquiry()
+                if isinstance(resp, tuple):
+                    answer = resp[0]
+                    question = resp[1]  # question
+                    self.irc.send_dm(self.channel, self.target, answer)
+                    time.sleep(3)
+                    self.irc.send_dm(self.channel, self.target, question)
+            else:
+                self.bot_state.ignore_after_inquiry_two()
 
+    def inquiry_reply_state(self):
+        """ get a response from other speaker and head to terminal state """
+        # if we speak first
+        if self.spoke_first:
+            self.bot_state.happy_end()
+
+        # we speak second
+        else:
+            # TODO: Check for malformed user input / if input is a question
+            self.wait_for_text(self.bot_state.happy_end, self.bot_state.happy_end)
 
     def normalize_response(self):
         # TODO make response same, ie `I'm good` to `i am good`
         pass
-
 
     def giveup_state(self):
         self.irc.send_dm(self.channel, self.target, "Well bye then")  # TODO change to enum of frustration
@@ -283,14 +309,6 @@ class ChatBot: # init here
     def end_state(self):
         print("Restarting State machine")  # debug
         self.bot_state.restart()
-
-    def inquiry_two_state(self):
-        print("in inquiry two state")
-        # respond first
-
-        self.bot_state.restart()  # remove later
-
-
 
 
 if __name__ == "__main__":
