@@ -21,7 +21,7 @@ class IRCSocket:
 
     def send_dm(self, channel, user, msg):
         # self.send()
-        self.irc.send(bytes(f"PRIVMSG {channel} : {user} {msg}\n", "UTF-8"))
+        self.irc.send(bytes(f"PRIVMSG {channel} : {user}: {msg}\n", "UTF-8"))
         time.sleep(3)
 
     def connect(self, server, channel, botnick):

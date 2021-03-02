@@ -2,11 +2,11 @@ from irc_socket import *
 import random
 import time
 from statemachine import StateMachine, State
-# import os
+import sys
 
 
 # when chatbot is speaker one
-initial_outreach = random.choice(["Hi", "Hello", "Hey there", "Howdy", "Yoooo", "Hey", "Welcome"])
+initial_outreach = random.choice(["Hi", "Hello", "Hey there", "Howdy", "Yoooo", "Yo", "Hey", "Welcome"])
 pairs_outreach = {
     "hi": ["What's up?", "How's it going", "What's happening?"],
     "hey": ["What's up?", "How's it going", "What's happening?"],
@@ -14,7 +14,8 @@ pairs_outreach = {
     "yo": ["What's up?", "How's it going", "What's happening?"],
     "hey there": ["What's up?", "How's it going", "What's happening?"],
     "welcome": ["What's up?", "How's it going", "What's happening?"],
-    "yoooo": ["What's up?", "How's it going", "What's happening?"]
+    "yoooo": ["What's up?", "How's it going", "What's happening?"],
+    "howdy": ["What's up?", "How's it going", "What's happening?"]
 }
 
 
@@ -26,11 +27,14 @@ pairs_response = {
     "hiii":  ["Hello", "Hey there", "Howdy", "Yoooo", "Hey", "Welcome"],
     "yo": ["Hello", "Hey there", "Howdy", "Yoooo", "Hey", "Welcome"],
     "howdy": ["Hello", "Hey there", "Howdy", "Yoooo", "Hey", "Welcome"],
-    "what's up": [("I'm good", "How are you?"), ("I'm fine, thanks", "And you?"),
+    "yoooo": ["Hello", "Hey there", "Howdy", "Yoooo", "Hey", "Welcome"],
+    "welcome": ["Hello", "Hey there", "Howdy", "Yoooo", "Hey", "Welcome"],
+    "hey there": ["Hello", "Hey there", "Howdy", "Yoooo", "Hey", "Welcome"],
+    "what's up?": [("I'm good", "How are you?"), ("I'm fine, thanks", "And you?"),
                   ("Nothing much", "You?"), ("Great", "What about you?")],
-    "how's it going": [("I'm good", "How are you?"), ("I'm fine, thanks", "And you?"),
+    "how's it going?": [("I'm good", "How are you?"), ("I'm fine, thanks", "And you?"),
                        ("Nothing much", "You?"), ("Great", "What about you?")],
-    "what's happening": [("I'm good", "How are you?"), ("I'm fine, thanks", "And you?"),
+    "what's happening?": [("I'm good", "How are you?"), ("I'm fine, thanks", "And you?"),
                          ("Nothing much", "You?"), ("Great", "What about you?")],
     "you?" : [("I'm good", "How are you?"), ("I'm fine, thanks", "And you?"),
                   ("Nothing much", "You?"), ("Great", "What about you?")],
@@ -45,11 +49,17 @@ pairs_response = {
 get_next_outreach = lambda utterance: random.choice(pairs_outreach[utterance])
 get_next_response = lambda utterance: random.choice(pairs_response[utterance])
 
-# print(get_next_response('hello'))
-
 
 def main():
-    bot = ChatBot()
+    # python3 testbot.py irc.freenode.net “#CPE482” myNickname
+    if len(sys.argv) == 4:
+        server = sys.argv[1]
+        channel = sys.argv[2].strip("\"")
+        botnick = sys.argv[3]
+        bot = ChatBot(server=server, channel=channel, botnick=botnick)
+    else:
+        bot = ChatBot()
+
     bot.init_bot()
     bot.run_bot()
 
@@ -110,6 +120,7 @@ class ChatBot: # init here
             text = self.irc.get_response()
             if "JOIN" in text:
                 break
+
             # print(f"{count} output: {text}")
 
         time.sleep(1)
@@ -167,7 +178,7 @@ class ChatBot: # init here
         return text
 
     def run_bot(self):
-        while self.bot_state != ChatState.end:
+        while True:
             print(f"state: {self.bot_state}")
             # append name list
             self.get_names()
@@ -200,7 +211,6 @@ class ChatBot: # init here
         else:
             self.awaiting_response = True
             no_message_func()
-        # TODO parse put and set target to who replied to you
         return self.awaiting_response
 
     def start_state(self):
@@ -208,17 +218,19 @@ class ChatBot: # init here
 
     def initial_outreach_state(self):
         # we are always speaker one
-        self.target = ""
+        if not self.target:  # TODO remove later
+            self.target = ""
         #                                     we are speaker one,          we are speaker two
         self.spoke_first = self.wait_for_text(self.bot_state.no_reply_one, self.bot_state.response)
         if self.spoke_first:
-            self.target = random.choice(list(self.users))
+            if not self.target:  # TODO remove too
+                self.target = random.choice(list(self.users))
             print(f"reaching out to {self.target}")
-            self.irc.send_dm(self.channel, self.target, initial_outreach)  # replace with more options
+            self.irc.send_dm(self.channel, self.target, initial_outreach)
 
     def secondary_outreach_state(self):
         if self.wait_for_text(self.bot_state.retry_secondary, self.bot_state.second_response):
-            self.irc.send_dm(self.channel, self.target, "Hello?????")  # replace with more options
+            self.irc.send_dm(self.channel, self.target, "Hello?????")  # TODO replace with more options
             self.wait_for_text(self.bot_state.no_reply_after_second, self.bot_state.second_response)
 
     def outreach_reply_state(self):
@@ -252,6 +264,7 @@ class ChatBot: # init here
                 # TODO check for unique questions (phase 3)
                 resp = "What are you trying to say?"  # TODO change to confused
                 self.irc.send_dm(self.channel, self.target, resp)
+                self.wait_for_text(self.bot_state.retry_outreach, self.bot_state.retry_outreach)
 
         # self.irc.send_dm(self.channel, self.target, resp)
 
