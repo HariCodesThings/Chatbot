@@ -90,6 +90,8 @@ class ChatBot:  # init here
         self.user_text = ""
         self.retries = 0
         self.spoke_first = None
+        self.sent_forget = False
+        self.seconds_passed = 0
 
     def init_bot(self):
         while True:
@@ -97,15 +99,12 @@ class ChatBot:  # init here
             if "JOIN" in text:
                 break
         time.sleep(1)
-        self.get_names(debug=True)
+        self.get_names()
 
-    def get_names(self, debug=False):
+    def get_names(self):
         names = self.irc.get_names(self.channel)
         names_no_bot = [name for name in names if self.botnick not in name]
         self.users = names_no_bot
-
-        if debug:
-            print(f"printing names: {self.users}")
 
     def check_msg(self, _text):
         return "PRIVMSG" in _text and self.channel in _text and self.botnick + ":" in _text
@@ -113,7 +112,7 @@ class ChatBot:  # init here
     def get_user_text(self, _text):
         exp_index = _text.find("!")
         who_sent = _text[1:exp_index] if exp_index > 0 else ""
-        if not self.target:
+        if not self.target or (self.bot_state.is_secondary_outreach and self.seconds_passed > 10):
             self.target = who_sent
 
         name_index = _text.find(self.botnick)
@@ -130,24 +129,15 @@ class ChatBot:  # init here
             self.irc.kill_self(self.channel)
             exit()
         elif "forget" == self.user_text:
+            self.sent_forget = True
             self.bot_state.restart()
-        else:
-            pass
-
-    def get_timed_response(self):
-        seconds_elapsed = 0
-        text = None
-        while seconds_elapsed != 30:
-            if seconds_elapsed % 5 == 0:
-                print(f"{seconds_elapsed} tries")
-            text = self.get_response()
-            if text:
-                return text
-            seconds_elapsed += 1
-        return text
 
     def wait_for_text(self, no_message_func, has_message_func):
         text = self.get_timed_response()  # first 30 seconds
+        if self.sent_forget:
+            self.sent_forget = False
+            self.awaiting_response = True  # treat like no response in pipeline
+            return False
         if text:
             self.awaiting_response = False
             has_message_func()
@@ -155,6 +145,18 @@ class ChatBot:  # init here
             self.awaiting_response = True
             no_message_func()
         return self.awaiting_response
+
+    def get_timed_response(self):
+        self.seconds_passed = 0
+        text = None
+        while self.seconds_passed != 30 and not self.sent_forget:
+            if self.seconds_passed % 5 == 0:
+                print(f"{self.seconds_passed} tries")
+            text = self.get_response()
+            if text:
+                return text
+            self.seconds_passed += 1
+        return text
 
     def get_response(self):
         text = None
@@ -206,6 +208,21 @@ class ChatBot:  # init here
                 return "intro"
         return "unknown"
 
+    def check_unique_question_hari(self, _text):
+        # asks top X artists -> ask for genre -> user gives genre -> bot sends top 10 songs for genre
+        # -> user asks if artist in top 10 -> bot says yes or no and prints song
+        return False
+
+    def check_unique_question_clay(self, _text):
+        # asks travel recommendation -> bot asks what weather you like -> user gives weather -> bot asks what activities
+        # -> users sends activities -> bot sends final recommendation
+        return False
+
+    def check_unique_question_archit(self, _text):
+        # asks recipe or ingredients in food -> bot gives recipe -> user asked for ingredients
+        # -> bot returns ingredients
+        return False
+
     def run_bot(self):
         while True:
             print(f"state: {self.bot_state}")
@@ -244,6 +261,17 @@ class ChatBot:  # init here
             self.target = random.choice(list(self.users))
             print(f"reaching out to {self.target}")
             self.irc.send_dm(self.channel, self.target, random.choice(initial_outreaches))
+            return
+        # code here (check for unique question and then branch to new state machine)
+        if self.check_unique_question_hari(self.user_text):
+            # fill in with logic to try unique functionality
+            self.bot_state.restart()
+        elif self.check_unique_question_clay(self.user_text):
+            # fill in with logic to try unique functionality
+            self.bot_state.restart()
+        elif self.check_unique_question_archit(self.user_text):
+            # fill in with logic to try unique functionality
+            self.bot_state.restart()
 
     def secondary_outreach_state(self):
         if self.wait_for_text(self.bot_state.retry_secondary, self.bot_state.second_response):
@@ -322,7 +350,6 @@ class ChatBot:  # init here
         self.bot_state.giveup_end()
 
     def end_state(self):
-        print("Restarting State machine")  # debug
         self.bot_state.restart()
 
 
