@@ -1,3 +1,5 @@
+import nltk
+nltk.download('punkt')
 from irc_socket import *
 import random
 import time
@@ -5,45 +7,21 @@ from statemachine import StateMachine, State
 import sys
 
 
-# when chatbot is speaker one
-initial_outreach = random.choice(["Hi", "Hello", "Hey there", "Howdy", "Yoooo", "Yo", "Hey", "Welcome"])
-pairs_outreach = {
-    "hi": ["What's up?", "How's it going", "What's happening?"],
-    "hey": ["What's up?", "How's it going", "What's happening?"],
-    "hello": ["What's up?", "How's it going", "What's happening?"],
-    "yo": ["What's up?", "How's it going", "What's happening?"],
-    "hey there": ["What's up?", "How's it going", "What's happening?"],
-    "welcome": ["What's up?", "How's it going", "What's happening?"],
-    "yoooo": ["What's up?", "How's it going", "What's happening?"],
-    "howdy": ["What's up?", "How's it going", "What's happening?"]
-}
+initial_outreaches = ["Hi", "Hello", "Hey there", "Howdy", "Yoooo", "Yo", "Hey", "Welcome"]
+secondary_outreaches = ["Hello???", "Anyone there???", "Hiii", "Hellooo", "I said hi", "excuse me???"]
+frustrated_phrases = ["Screw you!", "Well, bye then", "Whatever, fine. Don't answer", "Ugh ok, bye",
+                      "Forget youuuuuu (in CeeLo Green voice)", "I'm leaving..."]
+confused_phrases = ["I don't understand", "Can you say that again?", "Nani?!?", "What did you say?",
+                    "Literally idk dude", "Bro, what???", "Huh???"]
 
+# when chatbot is speaker one
+pairs_outreach = {"intro": ["What's up?", "How's it going", "What's happening?"]}
 
 # when chatbot is speaker two
 pairs_response = {
-    "hi": ["Hello", "Hey there", "Howdy", "Yoooo", "Hey", "Welcome"],
-    "hey": ["Hello", "Hey there", "Howdy", "Yoooo", "Hey", "Welcome"],
-    "hello": ["Hello", "Hey there", "Howdy", "Yoooo", "Hey", "Welcome"],
-    "hiii":  ["Hello", "Hey there", "Howdy", "Yoooo", "Hey", "Welcome"],
-    "yo": ["Hello", "Hey there", "Howdy", "Yoooo", "Hey", "Welcome"],
-    "howdy": ["Hello", "Hey there", "Howdy", "Yoooo", "Hey", "Welcome"],
-    "yoooo": ["Hello", "Hey there", "Howdy", "Yoooo", "Hey", "Welcome"],
-    "welcome": ["Hello", "Hey there", "Howdy", "Yoooo", "Hey", "Welcome"],
-    "hey there": ["Hello", "Hey there", "Howdy", "Yoooo", "Hey", "Welcome"],
-    "what's up?": [("I'm good", "How are you?"), ("I'm fine, thanks", "And you?"),
-                  ("Nothing much", "You?"), ("Great", "What about you?")],
-    "how's it going?": [("I'm good", "How are you?"), ("I'm fine, thanks", "And you?"),
-                       ("Nothing much", "You?"), ("Great", "What about you?")],
-    "what's happening?": [("I'm good", "How are you?"), ("I'm fine, thanks", "And you?"),
-                         ("Nothing much", "You?"), ("Great", "What about you?")],
-    "you?" : [("I'm good", "How are you?"), ("I'm fine, thanks", "And you?"),
-                  ("Nothing much", "You?"), ("Great", "What about you?")],
-    "how are you?" : [("I'm good", "How are you?"), ("I'm fine, thanks", "And you?"),
-                  ("Nothing much", "You?"), ("Great", "What about you?")],
-    "and you?" : [("I'm good", "How are you?"), ("I'm fine, thanks", "And you?"),
-                  ("Nothing much", "You?"), ("Great", "What about you?")],
-    "What about you?" : [("I'm good", "How are you?"), ("I'm fine, thanks", "And you?"),
-                  ("Nothing much", "You?"), ("Great", "What about you?")],
+    "intro": ["Hello", "Hey there", "Howdy", "Yoooo", "Hey", "Welcome"],
+    "inquiry": [("I'm good", "How are you?"), ("I'm fine, thanks", "And you?"),
+                ("Nothing much", "You?"), ("Great", "What about you?")]
 }
 
 get_next_outreach = lambda utterance: random.choice(pairs_outreach[utterance])
@@ -120,7 +98,6 @@ class ChatBot: # init here
             text = self.irc.get_response()
             if "JOIN" in text:
                 break
-
             # print(f"{count} output: {text}")
 
         time.sleep(1)
@@ -137,16 +114,16 @@ class ChatBot: # init here
     def check_msg(self, _text):
         return "PRIVMSG" in _text and self.channel in _text and self.botnick + ":" in _text
 
-    def get_user_text(self, text):
-        exp_index = text.find("!")
-        who_sent = text[1:exp_index] if exp_index > 0 else ""
+    def get_user_text(self, _text):
+        exp_index = _text.find("!")
+        who_sent = _text[1:exp_index] if exp_index > 0 else ""
         if not self.target:
             self.target = who_sent
         if who_sent != self.target:
             return False
 
-        name_index = text.find(self.botnick)
-        self.user_text = text[name_index+len(self.botnick)+1:].strip().lower()  # +1 to get rid of colon
+        name_index = _text.find(self.botnick)
+        self.user_text = _text[name_index + len(self.botnick) + 1:].strip().lower()  # +1 to get rid of colon
 
         print(f"{who_sent} said `{self.user_text}`")
         self.check_for_commands()
@@ -167,14 +144,21 @@ class ChatBot: # init here
         while seconds_elapsed != 30:
             if seconds_elapsed % 5 == 0:
                 print(f"{seconds_elapsed} tries")
-            if self.irc.poll_read_response():
-                text = self.irc.get_response()
-                if text:
-                    for line in text.split("\n"):
-                        if self.check_msg(line) and self.get_user_text(line):
-                            return line
-                    text = None
+            text = self.get_response()
+            if text:
+                return text
             seconds_elapsed += 1
+        return text
+
+    def get_response(self):
+        text = None
+        if self.irc.poll_read_response():
+            text = self.irc.get_response()
+            if text:
+                for line in text.split("\n"):
+                    if self.check_msg(line) and self.get_user_text(line):
+                        return line
+                text = None
         return text
 
     def run_bot(self):
@@ -218,31 +202,32 @@ class ChatBot: # init here
 
     def initial_outreach_state(self):
         # we are always speaker one
-        if not self.target:  # TODO remove later
-            self.target = ""
+        self.target = ""
         #                                     we are speaker one,          we are speaker two
         self.spoke_first = self.wait_for_text(self.bot_state.no_reply_one, self.bot_state.response)
         if self.spoke_first:
-            if not self.target:  # TODO remove too
-                self.target = random.choice(list(self.users))
+            # TODO (SEMI): Start with no target and assign only when someone responds, check irc send for start code
+            self.target = random.choice(list(self.users))
             print(f"reaching out to {self.target}")
-            self.irc.send_dm(self.channel, self.target, initial_outreach)
+            self.irc.send_dm(self.channel, self.target, random.choice(initial_outreaches))
 
     def secondary_outreach_state(self):
+        # TODO: Set target if there's a response and no target exists
         if self.wait_for_text(self.bot_state.retry_secondary, self.bot_state.second_response):
-            self.irc.send_dm(self.channel, self.target, "Hello?????")  # TODO replace with more options
+            self.irc.send_dm(self.channel, self.target, random.choice(secondary_outreaches))
             self.wait_for_text(self.bot_state.no_reply_after_second, self.bot_state.second_response)
 
     def outreach_reply_state(self):
         if self.spoke_first:  # we are speaker one
             max_retries = 3
-            if self.user_text in pairs_outreach.keys():
-                resp = get_next_outreach(self.user_text)  # should look like a question
+            normalized_text = self.normalize_response(self.user_text)
+            if normalized_text in pairs_outreach.keys():
+                resp = get_next_outreach(normalized_text)  # should look like a question
                 self.bot_state.inquiry_given()
                 self.retries = 0
                 self.irc.send_dm(self.channel, self.target, resp)
             elif self.retries <= max_retries:
-                resp = "Try again"  # TODO change to enum that has confused phrases
+                resp = random.choice(confused_phrases)
                 self.irc.send_dm(self.channel, self.target, resp)
                 self.wait_for_text(self.bot_state.retry_outreach, self.bot_state.retry_outreach)
                 if self.awaiting_response:
@@ -251,9 +236,10 @@ class ChatBot: # init here
             else:
                 self.bot_state.no_inquiry()
         else:  # we are speaker two
-            if self.user_text in pairs_response.keys():
+            normalized_text = self.normalize_response(self.user_text)
+            if normalized_text in pairs_response.keys():
                 # hi or hi and question if they asked a question
-                resp = get_next_response(self.user_text)
+                resp = get_next_response(normalized_text)
                 self.bot_state.inquiry_given()
                 if isinstance(resp, tuple):
                     self.bot_response = resp
@@ -262,7 +248,7 @@ class ChatBot: # init here
                     self.irc.send_dm(self.channel, self.target, resp)
             else:
                 # TODO check for unique questions (phase 3)
-                resp = "What are you trying to say?"  # TODO change to confused
+                resp = random.choice(confused_phrases)
                 self.irc.send_dm(self.channel, self.target, resp)
                 self.wait_for_text(self.bot_state.retry_outreach, self.bot_state.retry_outreach)
 
@@ -275,14 +261,15 @@ class ChatBot: # init here
             if self.awaiting_response:
                 return
             self.wait_for_text(self.bot_state.ignore_after_inquiry_two, self.bot_state.to_next_inquiry)
-            if self.user_text in pairs_response.keys():
-                resp = get_next_response(self.user_text)
+            normalized_text = self.normalize_response(self.user_text)
+            if normalized_text in pairs_response.keys():
+                resp = get_next_response(normalized_text)
                 # self.bot_state.inquiry_response()
                 if isinstance(resp, tuple):
                     answer = resp[0]
                     self.irc.send_dm(self.channel, self.target, answer)  # send reply
             else:
-                resp = "What"  # TODO more confused
+                resp = random.choice(confused_phrases)
                 self.irc.send_dm(self.channel, self.target, resp)
         elif self.bot_response:
             if isinstance(self.bot_response, tuple):
@@ -295,9 +282,10 @@ class ChatBot: # init here
             self.wait_for_text(self.bot_state.ignore_after_inquiry, self.bot_state.inquiry_response)
             if self.awaiting_response:
                 return
-            if self.user_text in pairs_response.keys():
+            normalized_text = self.normalize_response(self.user_text)
+            if normalized_text in pairs_response.keys():
                 # question if they asked a question
-                resp = get_next_response(self.user_text)
+                resp = get_next_response(normalized_text)
                 self.bot_state.to_next_inquiry()
                 if isinstance(resp, tuple):
                     answer = resp[0]
@@ -319,12 +307,38 @@ class ChatBot: # init here
             # TODO: Check for malformed user input / if input is a question
             self.wait_for_text(self.bot_state.happy_end, self.bot_state.happy_end)
 
-    def normalize_response(self):
-        # TODO make response same, ie `I'm good` to `i am good`
-        pass
+    @staticmethod
+    def remove_conjunctions(_text):
+        conjunctions = {"'s": "is", "'re": "are", "'t": "not", "'d": "did"}
+        tokenized_text = nltk.word_tokenize(_text)
+        for i in range(len(tokenized_text)):
+            if tokenized_text[i] in conjunctions.keys():
+                tokenized_text[i] = conjunctions[tokenized_text[i]]
+        return ' '.join(tokenized_text)
+
+    def normalize_response(self, _text):
+        intro_words = ["hey", "hello", "hi", "yo", "welcome", "howdy"]
+        one_word_inquiry = ["you?"]
+        inquiry_start = ["how", "what", "and"]
+        inquiry_next = ["you", "going", "happening", "good", "popping", "cracking", "everything", "things", "life"]
+        slang_phrases = ["wassup", "sup", "wazzup", "poppin", "crackin", "whaddup", "it do"]
+        processed_text = self.remove_conjunctions(_text)
+        if processed_text.lower() == one_word_inquiry:
+            return "inquiry"
+        for start in inquiry_start:
+            for nxt in inquiry_next:
+                if start and nxt in processed_text.lower():
+                    return "inquiry"
+        for slang in slang_phrases:
+            if slang in processed_text.lower():
+                return "inquiry"
+        for word in intro_words:
+            if word in processed_text.lower():
+                return "intro"
+        return "unknown"
 
     def giveup_state(self):
-        self.irc.send_dm(self.channel, self.target, "Well bye then")  # TODO change to enum of frustration
+        self.irc.send_dm(self.channel, self.target, random.choice(frustrated_phrases))
         self.bot_state.giveup_end()
 
     def end_state(self):

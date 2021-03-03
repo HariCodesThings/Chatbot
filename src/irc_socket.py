@@ -1,8 +1,8 @@
 import socket
 import time
 import select
-import sys
-import re
+# import sys
+# import re
 
 
 class IRCSocket:
@@ -20,8 +20,10 @@ class IRCSocket:
         time.sleep(3)
 
     def send_dm(self, channel, user, msg):
-        # self.send()
-        self.irc.send(bytes(f"PRIVMSG {channel} : {user}: {msg}\n", "UTF-8"))
+        if user:
+            self.irc.send(bytes(f"PRIVMSG {channel} : {user}: {msg}\n", "UTF-8"))
+        else:
+            self.irc.send(bytes(f"PRIVMSG {channel} : {msg}\n", "UTF-8"))
         time.sleep(3)
 
     def connect(self, server, channel, botnick):
