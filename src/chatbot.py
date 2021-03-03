@@ -149,7 +149,7 @@ class ChatBot: # init here
                 return text
             seconds_elapsed += 1
         return text
-
+    
     def get_response(self):
         text = None
         if self.irc.poll_read_response():
