@@ -113,6 +113,8 @@ class ChatBot:  # init here
     def get_user_text(self, _text):
         exp_index = _text.find("!")
         who_sent = _text[1:exp_index] if exp_index > 0 else ""
+        self.check_for_commands()
+
         if not self.target or (self.bot_state.is_secondary_outreach and self.seconds_passed > 10):
             self.target = who_sent
 
@@ -192,7 +194,7 @@ class ChatBot:  # init here
         intro_words = ["hey", "hello", "hi", "yo", "welcome", "howdy"]
         one_word_inquiry = ["you?"]
         inquiry_start = ["how", "what", "and"]
-        inquiry_next = ["you", "going", "happening", "good", "popping", "cracking", "everything", "things", "life"]
+        inquiry_next = ["you", "going", "happening", "good", "popping", "cracking", "everything", "things", "life", "up"]
         slang_phrases = ["wassup", "sup", "wazzup", "poppin", "crackin", "whaddup", "it do"]
         if _text.lower() == one_word_inquiry:
             return "inquiry"
