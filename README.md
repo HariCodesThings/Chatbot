@@ -3,6 +3,7 @@ Speech and Language Processing Lab 4
 
 ## Instructions to run:
 ```pip install -r Packages.txt (to get dependencies in)```
+
 ```python chatbot.py irc.freenode.net "#Channel_Name_Here" Bot_Nickname_Here```
 
 
