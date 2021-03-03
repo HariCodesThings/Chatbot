@@ -176,6 +176,17 @@ class ChatBot: # init here
                     text = None
             seconds_elapsed += 1
         return text
+    
+    def get_response(self):
+        text = None
+        if self.irc.poll_read_response():
+            text = self.irc.get_response()
+            if text:
+                for line in text.split("\n"):
+                    if self.check_msg(line) and self.get_user_text(line):
+                        return line
+                text = None
+        return text
 
     def run_bot(self):
         while True:
