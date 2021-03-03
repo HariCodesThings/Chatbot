@@ -2,7 +2,7 @@ import requests
 from bs4 import BeautifulSoup
 import re
 from recipe_scrapers import scrape_me
-
+import random
 
 available_sites = {"https://www.acouplecooks.com", "https://www.acouplecooks.com", "https://claudia.abril.com.br/",
                     "https://allrecipes.com/", "https://amazingribs.com/", "https://ambitiouskitchen.com/",
@@ -63,43 +63,67 @@ def get_links(food_item):
     soup = BeautifulSoup(page.content,features="html.parser")
     import re
     links = soup.findAll("a")
-    link_list = []
+    link_list = set()
     for link in  soup.find_all("a",href=re.compile("(?<=/url\?q=)(htt.*://.*)")):
         link = re.split(":(?=http)",link["href"].replace("/url?q=",""))[0]
         index = link.find("&sa")
         if index > -1:
             link = link[:index]
-        link_list.append(link)
+        if "%" in link:
+            continue
+        if "youtube" in link:
+            continue
+        if "google" in link:
+            continue
+        # print(link)
+        root = get_root_website(link)
+        # print(root)
+        no_www = root.find("www.")
+        root2 = root[no_www+4:]
+        for site in available_sites:
+        #     # print("GOT HERE")
+            if root in site:
+                link_list.add(link)
+            elif root2 in site:
+                link_list.add(link)
     # print(link_list)
-    return link_list
+    # print(link_list)
+    return list(link_list)
 
 
 def get_root_website(link):
-    site = link.strip("https://")
-    arr = site.split("/")
-    root_website = "https://"+arr[0]+"/"
+    temp = link
+    site = temp.split("https://")
+    arr = site[1].split("/")
+    root_website = arr[0]
     return root_website
 
 
-def check_links(link_list):
-    for link in link_list:
-        root = get_root_website(link)
-        if root in available_sites:
-            scraper = scrape_me(link)
-            if len(scraper.ingredients()) > 0:
-                return (scraper.ingredients(),scraper.instructions(),link)
+def get_recipe(link):
+    scraper = scrape_me(link)
+    if len(scraper.ingredients()) > 0:
+        return (scraper.ingredients(),scraper.instructions(),link)
             # return link,True
-    scraper = scrape_me(link_list[0],wild_mode=True)
+    scraper = scrape_me(link,wild_mode=True)
     if len(scraper.ingredients()) > 0:
         return (scraper.ingredients(),scraper.instructions(),link)
     else:
-        return ([],"",link_list[0])
+        return ([],"",link)
     # return link_list[0],False
 
-
-link_list = get_links("Gobi Manchurian")
-print("Getting best link")
-print(check_links(link_list))
+def get_3_links(food_item):
+    link_list = get_links(food_item)
+    # clean_list = link_list[:5]
+    # print(link_list)
+    while(len(link_list) < 3):
+        link_list.append(link_list[0])
+    return random.sample(link_list,3)
+    
+# link_list = get_links("Gobi Manchurian")
+# link_list = (get_3_links("Gobi Manchurian"))
+# print(link_list)
+# print("Getting best link")
+# print(get_recipe(link_list[0]))
 # link, valid = check_links(link_list)
 # print(link)
 # if valid:
@@ -109,3 +133,15 @@ print(check_links(link_list))
 
 # scraper = scrape_me('https://www.indianhealthyrecipes.com/gobi-manchurian-recipe/')
 # print(scraper.instructions())
+
+def get_food_item(_text):
+    inquiry_start = ["how", "what"]
+    inquiry_next = ["make", "for"]
+    for start in inquiry_start:
+        for nxt in inquiry_next:
+            if start and nxt in _text:
+                index = _text.index(nxt)+len(nxt)+1
+                # print("Food_item:",_text[index:])
+                return _text[index:]
+    return None
+# print(get_food_item("How do I make Gobi Manchurian?"))

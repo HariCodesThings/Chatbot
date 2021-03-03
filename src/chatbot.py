@@ -5,6 +5,7 @@ import random
 import time
 from statemachine import StateMachine, State
 import sys
+from get_recipes import *
 
 
 initial_outreaches = ["Hi", "Hello", "Hey there", "Howdy", "Yoooo", "Yo", "Hey", "Welcome"]
@@ -75,41 +76,36 @@ class ChatState(StateMachine):
                           inquiry_reply, inquiry_super, giveup_frustrated, end)
 
 
-class ChatBot: # init here
+class ChatBot:  # init here
     def __init__(self, server="irc.freenode.net", channel="#CSC482", botnick="Default-bot"):
         self.bot_state = ChatState()
         self.bot_response = ""
         self.awaiting_response = False
-        self.users = set()
+        self.users = []
         self.target = ""
         self.server = server
         self.channel = channel
-        if "-bot" not in botnick[-4:]:
-            botnick += "-bot"
-        self.botnick = botnick
+        self.botnick = botnick if "-bot" in botnick[-4:] else botnick + "-bot"
         self.irc = IRCSocket()
         self.irc.connect(server, channel, botnick)
         self.user_text = ""
         self.retries = 0
         self.spoke_first = None
+        self.sent_forget = False
+        self.seconds_passed = 0
 
     def init_bot(self):
         while True:
             text = self.irc.get_response()
             if "JOIN" in text:
                 break
-            # print(f"{count} output: {text}")
-
         time.sleep(1)
-        self.get_names(debug=True)
+        self.get_names()
 
-    def get_names(self, debug=False):
+    def get_names(self):
         names = self.irc.get_names(self.channel)
-        names = set([name for name in names if self.botnick not in name])
-        self.users |= names
-
-        if debug:
-            print(f"printing names: {self.users}")
+        names_no_bot = [name for name in names if self.botnick not in name]
+        self.users = names_no_bot
 
     def check_msg(self, _text):
         return "PRIVMSG" in _text and self.channel in _text and self.botnick + ":" in _text
@@ -117,16 +113,16 @@ class ChatBot: # init here
     def get_user_text(self, _text):
         exp_index = _text.find("!")
         who_sent = _text[1:exp_index] if exp_index > 0 else ""
-        if not self.target:
+        if not self.target or (self.bot_state.is_secondary_outreach and self.seconds_passed > 10):
             self.target = who_sent
-        if who_sent != self.target:
-            return False
 
         name_index = _text.find(self.botnick)
         self.user_text = _text[name_index + len(self.botnick) + 1:].strip().lower()  # +1 to get rid of colon
 
         print(f"{who_sent} said `{self.user_text}`")
         self.check_for_commands()
+        if who_sent != self.target:
+            return False
         return True
 
     def check_for_commands(self):
@@ -134,22 +130,35 @@ class ChatBot: # init here
             self.irc.kill_self(self.channel)
             exit()
         elif "forget" == self.user_text:
+            self.sent_forget = True
             self.bot_state.restart()
+
+    def wait_for_text(self, no_message_func, has_message_func):
+        text = self.get_timed_response()  # first 30 seconds
+        if self.sent_forget:
+            self.sent_forget = False
+            self.awaiting_response = True  # treat like no response in pipeline
+            return False
+        if text:
+            self.awaiting_response = False
+            has_message_func()
         else:
-            pass
+            self.awaiting_response = True
+            no_message_func()
+        return self.awaiting_response
 
     def get_timed_response(self):
-        seconds_elapsed = 0
+        self.seconds_passed = 0
         text = None
-        while seconds_elapsed != 30:
-            if seconds_elapsed % 5 == 0:
-                print(f"{seconds_elapsed} tries")
+        while self.seconds_passed != 30 and not self.sent_forget:
+            if self.seconds_passed % 5 == 0:
+                print(f"{self.seconds_passed} tries")
             text = self.get_response()
             if text:
                 return text
-            seconds_elapsed += 1
+            self.seconds_passed += 1
         return text
-    
+
     def get_response(self):
         text = None
         if self.irc.poll_read_response():
@@ -161,11 +170,115 @@ class ChatBot: # init here
                 text = None
         return text
 
+    def send_question_answer_pair(self, resp, send_question=True):
+        if isinstance(resp, tuple):
+            answer = resp[0]
+            question = resp[1]  # question
+            self.irc.send_dm(self.channel, self.target, answer)
+            if send_question:
+                self.irc.send_dm(self.channel, self.target, question)
+
+    @staticmethod
+    def remove_conjunctions(_text):
+        conjunctions = {"'s": "is", "'re": "are", "'t": "not", "'d": "did"}
+        tokenized_text = nltk.word_tokenize(_text)
+        for i in range(len(tokenized_text)):
+            if tokenized_text[i] in conjunctions.keys():
+                tokenized_text[i] = conjunctions[tokenized_text[i]]
+        return ' '.join(tokenized_text)
+
+    @staticmethod
+    def normalize_response(_text):
+        intro_words = ["hey", "hello", "hi", "yo", "welcome", "howdy"]
+        one_word_inquiry = ["you?"]
+        inquiry_start = ["how", "what", "and"]
+        inquiry_next = ["you", "going", "happening", "good", "popping", "cracking", "everything", "things", "life"]
+        slang_phrases = ["wassup", "sup", "wazzup", "poppin", "crackin", "whaddup", "it do"]
+        if _text.lower() == one_word_inquiry:
+            return "inquiry"
+        processed_text = ChatBot.remove_conjunctions(_text).lower()
+        for start in inquiry_start:
+            for nxt in inquiry_next:
+                if start and nxt in processed_text:
+                    return "inquiry"
+        for slang in slang_phrases:
+            if slang in processed_text:
+                return "inquiry"
+        for word in intro_words:
+            if word in processed_text:
+                return "intro"
+        return "unknown"
+
+    def check_unique_question_hari(self, _text):
+        # asks top X artists -> ask for genre -> user gives genre -> bot sends top 10 songs for genre
+        # -> user asks if artist in top 10 -> bot says yes or no and prints song
+        return False
+
+    def check_unique_question_clay(self, _text):
+        # asks travel recommendation -> bot asks what weather you like -> user gives weather -> bot asks what activities
+        # -> users sends activities -> bot sends final recommendation
+        return False
+
+    def check_unique_question_archit(self, _text):
+        # asks recipe or ingredients in food -> bot gives recipe -> user asked for ingredients
+        # -> bot returns ingredients
+        recipe = False
+        ingredients = False
+        food_item = get_food_item(_text)
+        if food_item is None:
+            return False
+        print("Text:", _text)
+        if "recipe" in _text or "make" in _text:
+            recipe = True
+        if "ingredients" in _text or "materials" in _text:
+            ingredients = True
+        print("Inredients:", ingredients)
+        print("Recipe:", recipe)
+        food_item.replace("?","")
+        links = get_3_links(food_item)
+        # print(links)
+        search = None
+        root_links = []
+        for link in links:
+            temp = link
+            root_links.append(get_root_website(temp))
+        self.irc.send_dm(self.channel, self.target, "Which link do you want information from? (Enter 1, 2, or 3)")
+        i = 1
+        # print("ROOT LINKS:",root_links)
+        while i < 4:
+            # print("Link:", links[i-1], "Root:", root_links[i-1])
+            # index = root_links[i-1].find(".")+1 # find index of .
+            msg = str(i)+": "+root_links[i-1]
+            self.irc.send_dm(self.channel, self.target, msg)
+            i += 1
+        text = self.get_timed_response()
+        # print(links)
+        if not text:
+            self.irc.send_dm(self.channel, self.target, "Invalid Option. Bye Bye!")
+            return True
+            
+        if "1" in text:
+            search = links[0]
+        elif "2" in text:
+            search = links[1]
+        elif "3" in text:
+            search = links[2]
+
+        print("Search", search)
+        # print(links)
+        data = get_recipe(search)
+        if ingredients:
+            for ingred in data[0]:
+                self.irc.send_dm(self.channel, self.target, ingred)
+        else:
+            recipe_list = data[1].split("\n")
+            for step in recipe_list:
+                self.irc.send_dm(self.channel, self.target, step)
+        return True
+
     def run_bot(self):
         while True:
             print(f"state: {self.bot_state}")
-            # append name list
-            self.get_names()
             if self.bot_state.is_start:
                 self.start_state()
             elif self.bot_state.is_initial_outreach:
@@ -187,16 +300,6 @@ class ChatBot: # init here
             else:
                 print("State error")
 
-    def wait_for_text(self, no_message_func, has_message_func):
-        text = self.get_timed_response()  # first 30 seconds
-        if text:
-            self.awaiting_response = False
-            has_message_func()
-        else:
-            self.awaiting_response = True
-            no_message_func()
-        return self.awaiting_response
-
     def start_state(self):
         self.bot_state.reach_out()
 
@@ -206,13 +309,24 @@ class ChatBot: # init here
         #                                     we are speaker one,          we are speaker two
         self.spoke_first = self.wait_for_text(self.bot_state.no_reply_one, self.bot_state.response)
         if self.spoke_first:
-            # TODO (SEMI): Start with no target and assign only when someone responds, check irc send for start code
+            # append name list
+            self.get_names()
             self.target = random.choice(list(self.users))
             print(f"reaching out to {self.target}")
             self.irc.send_dm(self.channel, self.target, random.choice(initial_outreaches))
+            return
+        # code here (check for unique question and then branch to new state machine)
+        if self.check_unique_question_hari(self.user_text):
+            # fill in with logic to try unique functionality
+            self.bot_state.restart()
+        elif self.check_unique_question_clay(self.user_text):
+            # fill in with logic to try unique functionality
+            self.bot_state.restart()
+        elif self.check_unique_question_archit(self.user_text):
+            # fill in with logic to try unique functionality
+            self.bot_state.restart()
 
     def secondary_outreach_state(self):
-        # TODO: Set target if there's a response and no target exists
         if self.wait_for_text(self.bot_state.retry_secondary, self.bot_state.second_response):
             self.irc.send_dm(self.channel, self.target, random.choice(secondary_outreaches))
             self.wait_for_text(self.bot_state.no_reply_after_second, self.bot_state.second_response)
@@ -237,22 +351,16 @@ class ChatBot: # init here
                 self.bot_state.no_inquiry()
         else:  # we are speaker two
             normalized_text = self.normalize_response(self.user_text)
-            if normalized_text in pairs_response.keys():
-                # hi or hi and question if they asked a question
+            if normalized_text in pairs_response.keys():  # intro or intro and question if they asked a question
                 resp = get_next_response(normalized_text)
                 self.bot_state.inquiry_given()
-                if isinstance(resp, tuple):
-                    self.bot_response = resp
-                    return  # they asked a question; skipping
-                else:
-                    self.irc.send_dm(self.channel, self.target, resp)
-            else:
-                # TODO check for unique questions (phase 3)
-                resp = random.choice(confused_phrases)
-                self.irc.send_dm(self.channel, self.target, resp)
-                self.wait_for_text(self.bot_state.retry_outreach, self.bot_state.retry_outreach)
-
-        # self.irc.send_dm(self.channel, self.target, resp)
+                self.bot_response = resp if isinstance(resp, tuple) \
+                    else self.irc.send_dm(self.channel, self.target, resp)
+                return
+            # TODO check for unique questions (phase 3)
+            resp = random.choice(confused_phrases)
+            self.irc.send_dm(self.channel, self.target, resp)
+            self.wait_for_text(self.bot_state.retry_outreach, self.bot_state.retry_outreach)
 
     def inquiry_state(self):
         if self.spoke_first:
@@ -264,20 +372,13 @@ class ChatBot: # init here
             normalized_text = self.normalize_response(self.user_text)
             if normalized_text in pairs_response.keys():
                 resp = get_next_response(normalized_text)
-                # self.bot_state.inquiry_response()
-                if isinstance(resp, tuple):
-                    answer = resp[0]
-                    self.irc.send_dm(self.channel, self.target, answer)  # send reply
+                self.send_question_answer_pair(resp, False)  # send just answer here
             else:
                 resp = random.choice(confused_phrases)
                 self.irc.send_dm(self.channel, self.target, resp)
         elif self.bot_response:
-            if isinstance(self.bot_response, tuple):
-                answer = self.bot_response[0]
-                question = self.bot_response[1]  # question
-                self.irc.send_dm(self.channel, self.target, answer)
-                time.sleep(3)
-                self.irc.send_dm(self.channel, self.target, question)
+            self.send_question_answer_pair(self.bot_response)
+            self.bot_response = ""
         else:
             self.wait_for_text(self.bot_state.ignore_after_inquiry, self.bot_state.inquiry_response)
             if self.awaiting_response:
@@ -287,65 +388,23 @@ class ChatBot: # init here
                 # question if they asked a question
                 resp = get_next_response(normalized_text)
                 self.bot_state.to_next_inquiry()
-                if isinstance(resp, tuple):
-                    answer = resp[0]
-                    question = resp[1]  # question
-                    self.irc.send_dm(self.channel, self.target, answer)
-                    time.sleep(3)
-                    self.irc.send_dm(self.channel, self.target, question)
+                self.send_question_answer_pair(resp)
             else:
                 self.bot_state.ignore_after_inquiry_two()
 
     def inquiry_reply_state(self):
-        """ get a response from other speaker and head to terminal state """
-        # if we speak first
         if self.spoke_first:
             self.bot_state.happy_end()
-
-        # we speak second
         else:
-            # TODO: Check for malformed user input / if input is a question
             self.wait_for_text(self.bot_state.happy_end, self.bot_state.happy_end)
-
-    @staticmethod
-    def remove_conjunctions(_text):
-        conjunctions = {"'s": "is", "'re": "are", "'t": "not", "'d": "did"}
-        tokenized_text = nltk.word_tokenize(_text)
-        for i in range(len(tokenized_text)):
-            if tokenized_text[i] in conjunctions.keys():
-                tokenized_text[i] = conjunctions[tokenized_text[i]]
-        return ' '.join(tokenized_text)
-
-    def normalize_response(self, _text):
-        intro_words = ["hey", "hello", "hi", "yo", "welcome", "howdy"]
-        one_word_inquiry = ["you?"]
-        inquiry_start = ["how", "what", "and"]
-        inquiry_next = ["you", "going", "happening", "good", "popping", "cracking", "everything", "things", "life"]
-        slang_phrases = ["wassup", "sup", "wazzup", "poppin", "crackin", "whaddup", "it do"]
-        processed_text = self.remove_conjunctions(_text)
-        if processed_text.lower() == one_word_inquiry:
-            return "inquiry"
-        for start in inquiry_start:
-            for nxt in inquiry_next:
-                if start and nxt in processed_text.lower():
-                    return "inquiry"
-        for slang in slang_phrases:
-            if slang in processed_text.lower():
-                return "inquiry"
-        for word in intro_words:
-            if word in processed_text.lower():
-                return "intro"
-        return "unknown"
 
     def giveup_state(self):
         self.irc.send_dm(self.channel, self.target, random.choice(frustrated_phrases))
         self.bot_state.giveup_end()
 
     def end_state(self):
-        print("Restarting State machine")  # debug
         self.bot_state.restart()
 
 
 if __name__ == "__main__":
     main()
-
