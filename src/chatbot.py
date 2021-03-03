@@ -191,8 +191,8 @@ class ChatBot:  # init here
         intro_words = ["hey", "hello", "hi", "yo", "welcome", "howdy"]
         one_word_inquiry = ["you?"]
         inquiry_start = ["how", "what", "and"]
-        inquiry_next = ["you", "going", "happening", "good", "popping", "cracking", "everything", "things", "life"]
-        slang_phrases = ["wassup", "sup", "wazzup", "poppin", "crackin", "whaddup", "it do"]
+        inquiry_next = ["you", "going", "happening", "good", "popping", "cracking", "everything", "things", "life", "up"]
+        slang_phrases = ["wassup", "sup", "wazzup", "poppin", "crackin", "whaddup", "it do"]`
         if _text.lower() == one_word_inquiry:
             return "inquiry"
         processed_text = ChatBot.remove_conjunctions(_text).lower()
