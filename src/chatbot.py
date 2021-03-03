@@ -112,6 +112,8 @@ class ChatBot:  # init here
     def get_user_text(self, _text):
         exp_index = _text.find("!")
         who_sent = _text[1:exp_index] if exp_index > 0 else ""
+
+        self.check_for_commands()
         if not self.target or (self.bot_state.is_secondary_outreach and self.seconds_passed > 10):
             self.target = who_sent
 
