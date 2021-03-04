@@ -23,6 +23,23 @@ Bot not responded to at all:
 30 seconds pass
 [10:11:33 AM] <Default-bot>  claymanr: Whatever, fine. Don't answer
 
+Travel recommendation straight:
+<claymanr> steve-bot: Where should I go to in March that's hot?
+<steve-bot>  claymanr: I've heard Dar es Salaam, Tanzania is great in March!
+
+Travel recommnedation all questions:
+<claymanr> steve-bot: Where should I go to?
+<steve-bot>  claymanr: What time are you thinking of going?
+<claymanr> steve-bot: I was thinking March
+<steve-bot>  claymanr: What temperature are you looking for?
+<claymanr> steve-bot: I want it cold
+<steve-bot>  claymanr: I've heard Buenos Aires, Argentina is great in March!
+
+Travel recommnedation fuzzy:
+<claymanr> steve-bot: Where should I go to in winter?
+<steve-bot>  claymanr: What temperature are you looking for?
+<claymanr> steve-bot: I'm thinking around 75
+<steve-bot>  claymanr: If you're traveling in January, head to Cape Town, South Africa!
 
 [11:22:15 PM] <HariMadhu> Default2-bot: what were the top 5 songs?
 [11:22:17 PM] <Default2-bot>  HariMadhu: Please specify what genre you would like to see top 5 songs for, you can choose between: `alternative`, `country`, `pop`, or `rap`. Or you can say `all music`, to get top 5 irrespective of genre
