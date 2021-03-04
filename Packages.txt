@@ -4,3 +4,4 @@ python-statemachine==0.8.0
 recipe-scrapers==12.2.0
 beautifulsoup4==4.9.3
 requests==2.24.0
+soupsieve==2.2

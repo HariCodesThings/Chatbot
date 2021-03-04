@@ -249,7 +249,6 @@ class ChatBot:  # init here
             root_links.append(get_root_website(temp))
         self.irc.send_dm(self.channel, self.target, "Which link do you want information from? (Enter 1, 2, or 3)")
         i = 1
-        # print("ROOT LINKS:",root_links)
         while i < 4:
             # print("Link:", links[i-1], "Root:", root_links[i-1])
             # index = root_links[i-1].find(".")+1 # find index of .
@@ -257,7 +256,7 @@ class ChatBot:  # init here
             self.irc.send_dm(self.channel, self.target, msg)
             i += 1
         text = self.get_timed_response()
-        # print(links)
+
         if not text:
             self.irc.send_dm(self.channel, self.target, "Fine I'll just take a guess on what you like")
             search = random.choice(links)
@@ -269,8 +268,6 @@ class ChatBot:  # init here
             elif "3" in text:
                 search = links[2]           
 
-        # print("Search", search)
-        # print(links)
         data = get_recipe(search)
         if ingredients:
             if len(data[0]) < 1:

@@ -43,7 +43,10 @@ User reaches out for unique question:
 <Default-bot> ABose: For the egg wash:
 <Default-bot> ABose: 1 large egg yolk
 <Default-bot> ABose: 1 tablespoon cream
-<Abose> Default-bot: die
+<Default-bot> ABose: Would you like to know the recipe? (Yes or No)
+<Abose> Default-bot: No
+<Default-bot> ABose: Alright. Have fun cooking!
+<Abose> Default-bot: Die
 
 User reaches out for another unique question:
 <ABose> Default-bot: How do I make Gobi Manchurian?

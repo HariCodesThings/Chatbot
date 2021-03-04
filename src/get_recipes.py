@@ -153,5 +153,9 @@ def get_food_item(_text):
                 index = _text.index(nxt)+len(nxt)+1
                 # print("Food_item:",_text[index:])
                 return _text[index:]
+        if "recipe" in _text and "a" in _text:
+            index1 = _text.index(" a ")
+            index2 = _text.index("recipe")
+            return _text[index1+3:index2]
     return None
 # print(get_food_item("How do I make Gobi Manchurian?"))
