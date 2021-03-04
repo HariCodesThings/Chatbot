@@ -1,11 +1,10 @@
 import nltk
 nltk.download('punkt')
-from irc_socket import *
 import random
-import time
 from statemachine import StateMachine, State
 import sys
-
+from irc_socket import *
+import webscrape as top5_scraper
 
 initial_outreaches = ["Hi", "Hello", "Hey there", "Howdy", "Yoooo", "Yo", "Hey", "Welcome"]
 secondary_outreaches = ["Hello???", "Anyone there???", "Hiii", "Hellooo", "I said hi", "excuse me???"]
@@ -27,9 +26,21 @@ pairs_response = {
 get_next_outreach = lambda utterance: random.choice(pairs_outreach[utterance])
 get_next_response = lambda utterance: random.choice(pairs_response[utterance])
 
+# top level variables for unique skill
+genres_supported = ["alternative", "country", "pop", "rap", "all music"]
+
+guess_genre = ("I guess I'll just give you top 5 for all music then...", "all music")
+
+ask_for_genre_script = "Please specify what genre you would like to see top 5 songs for, " \
+                       "you can choose between: `alternative`, `country`, `pop`, or `rap`. " \
+                       "Or you can say `all music`, to get top 5 irrespective of genre"
+
+ask_for_artist_check = "Do you want to check if a particular artist in this top 5 list? " \
+                       "Please answer in the form: `artist {artist_first_name}` or " \
+                       "`artist {artist_first_name} {artist_last_name}`"
+
 
 def main():
-    # python3 testbot.py irc.freenode.net “#CPE482” myNickname
     if len(sys.argv) == 4:
         server = sys.argv[1]
         channel = sys.argv[2].strip("\"")
@@ -86,12 +97,15 @@ class ChatBot:  # init here
         self.channel = channel
         self.botnick = botnick if "-bot" in botnick[-4:] else botnick + "-bot"
         self.irc = IRCSocket()
-        self.irc.connect(server, channel, botnick)
+        self.irc.connect(server, channel, self.botnick)
         self.user_text = ""
         self.retries = 0
         self.spoke_first = None
         self.sent_forget = False
         self.seconds_passed = 0
+        self.music_genre = ""
+        self.music_artist = ""
+        self.top5_music_df = None
 
     def init_bot(self):
         while True:
@@ -193,7 +207,8 @@ class ChatBot:  # init here
         intro_words = ["hey", "hello", "hi", "yo", "welcome", "howdy"]
         one_word_inquiry = ["you?"]
         inquiry_start = ["how", "what", "and"]
-        inquiry_next = ["you", "going", "happening", "good", "popping", "cracking", "everything", "things", "life", "up"]
+        inquiry_next = ["you", "going", "happening", "good", "popping", "cracking", "everything", "things", "life",
+                        "up"]
         slang_phrases = ["wassup", "sup", "wazzup", "poppin", "crackin", "whaddup", "it do"]
         if _text.lower() == one_word_inquiry:
             return "inquiry"
@@ -210,20 +225,90 @@ class ChatBot:  # init here
                 return "intro"
         return "unknown"
 
-    def check_unique_question_hari(self, _text):
+    @staticmethod
+    def check_unique_question(_text):
         # asks top X artists -> ask for genre -> user gives genre -> bot sends top 10 songs for genre
         # -> user asks if artist in top 10 -> bot says yes or no and prints song
+        start_word = ["what", "which", "who", "did", "is", "was"]
+        domain_phrases = ["top 5", "songs", "records", "music"]
+        clean_text = ChatBot.remove_conjunctions(_text).lower()
+        for sw in start_word:
+            for phrase in domain_phrases:
+                if sw and phrase in clean_text:
+                    return True
         return False
 
-    def check_unique_question_clay(self, _text):
-        # asks travel recommendation -> bot asks what weather you like -> user gives weather -> bot asks what activities
-        # -> users sends activities -> bot sends final recommendation
-        return False
+    def answer_top5_music_query(self, _text):
+        self.set_music_genre()
+        self.set_music_artist()
+        if not self.music_genre:
+            self.irc.send_dm(self.channel, self.target, ask_for_genre_script)
+            self.wait_for_text(self.guess_genre, self.set_music_genre)
+            if self.bot_state.is_start:
+                self.music_genre = None
+                self.music_artist = None
+                return
+        if self.music_genre:
+            self.top5_music_df = top5_scraper.get_top5_dataframe(self.music_genre)
+        if not self.music_artist:
+            formatted_strs = []
+            for result in self.top5_music_df.values.tolist():
+                formatted_str = f"The song ranked {result[0]} is:  {result[1]}"
+                formatted_strs.append(formatted_str)
+            for string in formatted_strs:
+                self.irc.send_dm(self.channel, self.target, string)
+            self.irc.send_dm(self.channel, self.target, ask_for_artist_check)
+            self.wait_for_text(self.missing_artist, self.set_music_artist)
+            if self.bot_state.is_start:
+                self.music_genre = None
+                self.music_artist = None
+                return
+        if self.music_artist:
+            if not self.music_genre:
+                self.guess_genre()
+            resp = ""
+            for result in self.top5_music_df.values.tolist():
+                if self.music_artist.lower() in result[2].lower():
+                    resp = f'Artist {result[2]} sang {result[1]}, ' \
+                        f'which ranked {result[0]} on the top 5 list for {self.music_genre}'
+            if resp:
+                self.irc.send_dm(self.channel, self.target, resp)
+                self.music_artist = None
+                return
+            neg_resp = f"Artist not found in top 5 for {self.music_genre}"
+            self.irc.send_dm(self.channel, self.target, neg_resp)
+            self.music_artist = None
+            return
+        self.irc.send_dm(self.channel, self.target, "I'm leaving...")
 
-    def check_unique_question_archit(self, _text):
-        # asks recipe or ingredients in food -> bot gives recipe -> user asked for ingredients
-        # -> bot returns ingredients
-        return False
+    def set_music_genre(self):
+        for genre in genres_supported:
+            if genre in self.user_text:
+                self.music_genre = genre
+
+    def set_music_artist(self):
+        split_text = self.user_text.split(" ")
+        for i in range(len(split_text)):
+            if split_text[i] == "artist":
+                if i + 1 == len(split_text) - 1:
+                    artist_fname = split_text[i + 1]
+                    self.music_artist = artist_fname
+                elif i + 2 < len(split_text):
+                    artist_fname = split_text[i + 1]
+                    artist_lname = split_text[i + 2] if split_text[i + 2][0].isupper() else None
+                    if artist_lname:
+                        self.music_artist = artist_fname + " " + artist_lname
+                        return
+                    self.music_artist = artist_fname
+
+    def guess_genre(self):
+        self.irc.send_dm(self.channel, self.target, guess_genre[0])
+        self.music_genre = guess_genre[1]
+
+    def missing_artist(self):
+        resp = "That's not an artist / you didn't format correctly... I'm leaving"
+        self.irc.send_dm(self.channel, self.channel, resp)
+        self.bot_state.restart()
 
     def run_bot(self):
         while True:
@@ -264,15 +349,8 @@ class ChatBot:  # init here
             print(f"reaching out to {self.target}")
             self.irc.send_dm(self.channel, self.target, random.choice(initial_outreaches))
             return
-        # code here (check for unique question and then branch to new state machine)
-        if self.check_unique_question_hari(self.user_text):
-            # fill in with logic to try unique functionality
-            self.bot_state.restart()
-        elif self.check_unique_question_clay(self.user_text):
-            # fill in with logic to try unique functionality
-            self.bot_state.restart()
-        elif self.check_unique_question_archit(self.user_text):
-            # fill in with logic to try unique functionality
+        if ChatBot.check_unique_question(self.user_text):
+            self.answer_top5_music_query(self.user_text)
             self.bot_state.restart()
 
     def secondary_outreach_state(self):
@@ -306,7 +384,6 @@ class ChatBot:  # init here
                 self.bot_response = resp if isinstance(resp, tuple) \
                     else self.irc.send_dm(self.channel, self.target, resp)
                 return
-            # TODO check for unique questions (phase 3)
             resp = random.choice(confused_phrases)
             self.irc.send_dm(self.channel, self.target, resp)
             self.wait_for_text(self.bot_state.retry_outreach, self.bot_state.retry_outreach)
