@@ -286,7 +286,7 @@ class ChatBot:  # init here
                 return
 
         # make recommendations
-        month_options = self.travel_df.loc[self.travel_df.loc[:, "Month"] == 'january', :]
+        month_options = self.travel_df.loc[self.travel_df.loc[:, "Month"] == self.travel_month, :]
         temp_index = (month_options['Low Temp'] <= self.travel_temp) &\
                      (month_options['High Temp'] >= self.travel_temp)
         final_options = list(month_options.loc[temp_index, "Town"])
@@ -426,7 +426,7 @@ class ChatBot:  # init here
                 self.bot_response = resp if isinstance(resp, tuple) \
                     else self.irc.send_dm(self.channel, self.target, resp)
                 return
-            # TODO check for unique questions (phase 3)
+
             resp = random.choice(confused_phrases)
             self.irc.send_dm(self.channel, self.target, resp)
             self.wait_for_text(self.bot_state.retry_outreach, self.bot_state.retry_outreach)
