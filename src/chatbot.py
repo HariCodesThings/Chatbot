@@ -149,7 +149,7 @@ class ChatBot:  # init here
         name_index = _text.find(self.botnick)
         self.user_text = _text[name_index + len(self.botnick) + 1:].strip().lower()  # +1 to get rid of colon
 
-        print(f"{who_sent} said `{self.user_text}`")
+        # print(f"{who_sent} said `{self.user_text}`")
         self.check_for_commands()
         if who_sent != self.target:
             return False
@@ -182,7 +182,7 @@ class ChatBot:  # init here
         text = None
         while self.seconds_passed != 30 and not self.sent_forget:
             if self.seconds_passed % 5 == 0:
-                print(f"{self.seconds_passed} tries")
+                # print(f"{self.seconds_passed} tries")
             text = self.get_response()
             if text:
                 return text
@@ -290,7 +290,7 @@ class ChatBot:  # init here
         temp_index = (month_options['Low Temp'] <= self.travel_temp) &\
                      (month_options['High Temp'] >= self.travel_temp)
         final_options = list(month_options.loc[temp_index, "Town"])
-        print(f"options: {final_options}")
+        # print(f"options: {final_options}")
         if len(final_options) == 0:
             final_options = list(month_options.loc[:, "Town"])
 
@@ -346,7 +346,7 @@ class ChatBot:  # init here
 
     def run_bot(self):
         while True:
-            print(f"state: {self.bot_state}")
+            # print(f"state: {self.bot_state}")
             if self.bot_state.is_start:
                 self.start_state()
             elif self.bot_state.is_initial_outreach:
@@ -380,7 +380,7 @@ class ChatBot:  # init here
             # append name list
             self.get_names()
             self.target = random.choice(list(self.users))
-            print(f"reaching out to {self.target}")
+            # print(f"reaching out to {self.target}")
             self.irc.send_dm(self.channel, self.target, random.choice(initial_outreaches))
             return
         # code here (check for unique question and then branch to new state machine)
