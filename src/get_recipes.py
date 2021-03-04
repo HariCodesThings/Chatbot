@@ -115,6 +115,8 @@ def get_3_links(food_item):
     link_list = get_links(food_item)
     # clean_list = link_list[:5]
     # print(link_list)
+    if len(link_list) == 0:
+        return []
     while(len(link_list) < 3):
         link_list.append(link_list[0])
     return random.sample(link_list,3)
