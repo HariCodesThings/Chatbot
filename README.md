@@ -20,7 +20,7 @@ temperature you'd prefer.
 ### added to project
 - irc_socket.py to connect us and allow us to interact w/ IRC server
 - chatbot.py, with core chatbot features
+- webscrape.py, to use with unique skill
 - Packages.txt, the dependency file
 - travelRecs.py, with web scraping for travel recommendations
-
 
