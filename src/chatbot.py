@@ -196,7 +196,7 @@ class ChatBot:  # init here
         self.seconds_passed = 0
         text = None
         while self.seconds_passed != 30 and not self.sent_forget:
-            if self.seconds_passed % 5 == 0:
+            # if self.seconds_passed % 5 == 0:
                 # print(f"{self.seconds_passed} tries")
             text = self.get_response()
             if text:
