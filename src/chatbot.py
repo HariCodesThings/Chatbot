@@ -228,7 +228,7 @@ class ChatBot:  # init here
         ingredients = False
         food_item = get_food_item(_text)
         if food_item is None:
-            return False
+            return True
         # print("Text:", _text)
         if "recipe" in _text or "make" in _text:
             recipe = True
@@ -298,8 +298,11 @@ class ChatBot:  # init here
         # print("Ingredients",data[0])
         ingredients = data[0]
         if not text:
-            self.irc.send_dm(self.channel, self.target, "Invalid Option. Bye Bye!")
+            self.irc.send_dm(self.channel, self.target, "Guess not. Cya!")
             return
+        if "n" in text.lower():
+            self.irc.send_dm(self.channel, self.target, "Alright. Have fun cooking!")
+            return 
         if "y" in text.lower() or "s" in text.lower():
             if data_type == True: # data_type True = get recipe
                 
@@ -319,9 +322,6 @@ class ChatBot:  # init here
                     self.irc.send_dm(self.channel, self.target, ingred)
                 self.irc.send_dm(self.channel, self.target, "Alright. Have fun cooking!")
                 return
-        else:
-            self.irc.send_dm(self.channel, self.target, "Alright. Have fun cooking!")
-            return 
         
 
     def run_bot(self):
