@@ -273,9 +273,17 @@ class ChatBot:  # init here
 
         if not self.travel_month:
             self.prompt_for_travel_time()
+            if self.bot_state.is_start:
+                self.travel_month = None
+                self.travel_temp = None
+                return
 
         if not self.travel_temp:
             self.prompt_for_travel_temp()
+            if self.bot_state.is_start:
+                self.travel_month = None
+                self.travel_temp = None
+                return
 
         # make recommendations
         month_options = self.travel_df.loc[self.travel_df.loc[:, "Month"] == 'january', :]
