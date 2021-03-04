@@ -117,9 +117,17 @@ def get_3_links(food_item):
     # print(link_list)
     if len(link_list) == 0:
         return []
-    while(len(link_list) < 3):
-        link_list.append(link_list[0])
-    return random.sample(link_list,3)
+    valid_links = []
+    for link in link_list:
+        data = get_recipe(link)
+        if data[1] != "" and len(data[0]) > 0:
+            valid_links.append(link)
+    if len(valid_links) == 0:
+        return []
+
+    while(len(valid_links) < 3):
+        valid_links.append(valid_links[0])
+    return random.sample(valid_links,3)
     
 # link_list = get_links("Gobi Manchurian")
 # link_list = (get_3_links("Gobi Manchurian"))
@@ -138,7 +146,7 @@ def get_3_links(food_item):
 
 def get_food_item(_text):
     inquiry_start = ["how", "what"]
-    inquiry_next = ["make", "for"]
+    inquiry_next = ["make", "for", "cook", "prepare", "bake"]
     for start in inquiry_start:
         for nxt in inquiry_next:
             if start and nxt in _text:

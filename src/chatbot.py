@@ -77,7 +77,7 @@ class ChatState(StateMachine):
 
 
 class ChatBot:  # init here
-    def __init__(self, server="irc.freenode.net", channel="#CSC482", botnick="Default-bot"):
+    def __init__(self, server="irc.freenode.net", channel="#CSC482_2", botnick="Default-bot"):
         self.bot_state = ChatState()
         self.bot_response = ""
         self.awaiting_response = False
@@ -259,18 +259,15 @@ class ChatBot:  # init here
         text = self.get_timed_response()
         # print(links)
         if not text:
-            self.irc.send_dm(self.channel, self.target, "Invalid Option. Bye Bye!")
-            return True
-            
-        if "1" in text:
-            search = links[0]
-        elif "2" in text:
-            search = links[1]
-        elif "3" in text:
-            search = links[2]
-        else:
-            self.irc.send_dm(self.channel, self.target, "Invalid Option. Bye Bye!")
-            return True
+            self.irc.send_dm(self.channel, self.target, "Fine I'll just take a guess on what you like")
+            search = random.choice(links)
+        else:    
+            if "1" in text:
+                search = links[0]
+            elif "2" in text:
+                search = links[1]
+            elif "3" in text:
+                search = links[2]           
 
         # print("Search", search)
         # print(links)
@@ -297,8 +294,8 @@ class ChatBot:  # init here
     
     def get_more_info(self,data,data_type):
         text = self.get_timed_response()
-        print("DATA",data)
-        print("Ingredients",data[0])
+        # print("DATA",data)
+        # print("Ingredients",data[0])
         ingredients = data[0]
         if not text:
             self.irc.send_dm(self.channel, self.target, "Invalid Option. Bye Bye!")
