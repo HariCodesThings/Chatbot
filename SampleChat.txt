@@ -17,11 +17,58 @@ Bot reaches out:
 <Default-bot>  claymanr: Great
 
 Bot not responded to at all:
-[10:10:23 AM] <Default-bot>  claymanr: Hello
+<Default-bot>  claymanr: Hello
 30 seconds pass
-[10:10:58 AM] <Default-bot>  claymanr: Hiii
+<Default-bot>  claymanr: Hiii
 30 seconds pass
-[10:11:33 AM] <Default-bot>  claymanr: Whatever, fine. Don't answer
+<Default-bot>  claymanr: Whatever, fine. Don't answer
+
+User reaches out for unique question:
+<ABose> Default-bot: What are the ingredients for apple pie?
+<Default-bot> ABose: Which link do you want information from? (Enter 1, 2, or 3)
+<Default-bot> ABose: 1: www.simplyrecipes.com
+<Default-bot> ABose: 2: www.foodnetwork.com
+<Default-bot> ABose:3: www.tasteofhome.com
+<Abose> Default-bot: 3
+<Default-bot> ABose: 3 pounds good cooking apples such as Granny Smith, Jonagold, Golden Delicious, Fuji, or Braeburn (about 6 to 8 apples, depending on the size of your apples and the size of your pie dish)
+<Default-bot> ABose: 1 tablespoon lemon juice or apple cider vinegar (to toss with the sliced apples so they don't brown as you slice them)
+<Default-bot> ABose: 1/2 cup to 2/3 cup sugar, depending on how sweet you like your pie
+<Default-bot> ABose: 3 tablespoons all-purpose flour for thickening
+<Default-bot> ABose: 1/2 teaspoon cinnamon
+<Default-bot> ABose: 1/4 teaspoon ground allspice
+<Default-bot> ABose: 1/4 teaspoon ground nutmeg
+<Default-bot> ABose: 1 tablespoon brandy (Optional. By the way, if you have Calvados apple brandy, use it!)
+<Default-bot> ABose: 1 teaspoon vanilla extract
+<Default-bot> ABose: 1 recipe double crust sour cream pie dough, OR all-butter crust, OR your favorite pie crust recipe
+<Default-bot> ABose: For the egg wash:
+<Default-bot> ABose: 1 large egg yolk
+<Default-bot> ABose: 1 tablespoon cream
+<Default-bot> ABose: Would you like to know the recipe? (Yes or No)
+<Abose> Default-bot: No
+<Default-bot> ABose: Alright. Have fun cooking!
+<Abose> Default-bot: Die
+
+User reaches out for another unique question:
+<ABose> Default-bot: How do I make Gobi Manchurian?
+<Default-bot>  ABose: Which link do you want information from? (Enter 1, 2, or 3)
+<Default-bot>  ABose: 1: tasty.co
+<Default-bot>  ABose: 2: www.indianhealthyrecipes.com
+<Default-bot>  ABose: 3: www.vegrecipesofindia.com
+<ABose> Default-bot: 3
+<Default-bot>  ABose: Add cauliflower florets and salt to a bowl and microwave for 5-7 minutes, or until the florets become soft.
+<Default-bot>  ABose: Add flour, cornstarch, paprika, cayenne pepper, 2 cloves of minced garlic, salt, ginger, and 1 teaspoon soy sauce to a bowl. Mix until well combined.
+<Default-bot>  ABose: Add water to the bowl in small amounts until the batter is thick and smooth. Add the cauliflower and mix until fully coated.
+<Default-bot>  ABose: Heat oil in a pot to 425°F (220°C).
+<Default-bot>  ABose: Add the coated cauliflower florets and deep fry until golden brown.
+<Default-bot>  ABose: Transfer the fried cauliflower to a paper towel-lined plate, and sprinkle with salt.
+<Default-bot>  ABose: In a cup or small bowl, make the cornstarch slurry. Combine the water and cornstarch and mix until well combined.
+<Default-bot>  ABose: In a large pan, heat oil and saute garlic on medium high heat. Add the green onions and saute for 2-3 minutes.
+<Default-bot>  ABose: Add the bell peppers and sauté for 7 minutes, or until the peppers are soft.
+<Default-bot>  ABose: Add the vinegar, chili sauce, tomato sauce, soy sauce, and crushed pepper flakes, and mix well.
+<Default-bot>  ABose: Add small amounts of the cornstarch water to the mixture and stir until the water becomes translucent. Add as much as you’d like, depending on how much gravy you want, but only go up to ½ cup (120 ml) of water to 4 tablespoons of cornstarch for maximum flavor.
+<Default-bot>  ABose: Add the fried cauliflower and gently stir to coat it with the gravy. Add salt to taste and stir.
+<Default-bot>  ABose: Serve with rice and top with optional lemon juice.
+<Default-bot>  ABose: Enjoy!
 
 Travel recommendation straight:
 <claymanr> steve-bot: Where should I go to in March that's hot?
@@ -63,4 +110,3 @@ Travel recommnedation fuzzy:
 [11:23:12 PM] <Default2-bot>  HariMadhu: Artist NF sang CLOUDS, which ranked 3 on the top 5 list for rap
 [11:23:25 PM] <HariMadhu> Default2-bot: did artist NF sing one of the top 5 songs in rap?
 [11:23:27 PM] <Default2-bot>  HariMadhu: Artist NF sang CLOUDS, which ranked 3 on the top 5 list for rap
-

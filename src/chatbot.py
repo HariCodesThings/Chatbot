@@ -3,8 +3,10 @@ nltk.download('punkt')
 import random
 from statemachine import StateMachine, State
 import sys
+from get_recipes import *
 from irc_socket import *
 import webscrape as top5_scraper
+
 
 initial_outreaches = ["Hi", "Hello", "Hey there", "Howdy", "Yoooo", "Yo", "Hey", "Welcome"]
 secondary_outreaches = ["Hello???", "Anyone there???", "Hiii", "Hellooo", "I said hi", "excuse me???"]
@@ -156,8 +158,6 @@ class ChatBot:  # init here
     def get_user_text(self, _text):
         exp_index = _text.find("!")
         who_sent = _text[1:exp_index] if exp_index > 0 else ""
-
-        self.check_for_commands()
         if not self.target or (self.bot_state.is_secondary_outreach and self.seconds_passed > 10):
             self.target = who_sent
 
@@ -284,7 +284,102 @@ class ChatBot:  # init here
     def check_unique_question_archit(self, _text):
         # asks recipe or ingredients in food -> bot gives recipe -> user asked for ingredients
         # -> bot returns ingredients
-        return False
+        recipe = False
+        ingredients = False
+        food_item = get_food_item(_text)
+        if food_item is None:
+            return True
+        # print("Text:", _text)
+        if "recipe" in _text or "make" in _text:
+            recipe = True
+        if "ingredients" in _text or "materials" in _text:
+            ingredients = True
+        # print("Inredients:", ingredients)
+        # print("Recipe:", recipe)
+        food_item.replace("?","")
+        links = get_3_links(food_item)
+        if len(links) == 0:
+            self.irc.send_dm(self.channel, self.target, "I don't know that food item sorry!")
+            return True
+
+        search = None
+        root_links = []
+        for link in links:
+            temp = link
+            root_links.append(get_root_website(temp))
+        self.irc.send_dm(self.channel, self.target, "Which link do you want information from? (Enter 1, 2, or 3)")
+        i = 1
+        while i < 4:
+            # print("Link:", links[i-1], "Root:", root_links[i-1])
+            # index = root_links[i-1].find(".")+1 # find index of .
+            msg = str(i)+": "+root_links[i-1]
+            self.irc.send_dm(self.channel, self.target, msg)
+            i += 1
+        text = self.get_timed_response()
+
+        if not text:
+            self.irc.send_dm(self.channel, self.target, "Fine I'll just take a guess on what you like")
+            search = random.choice(links)
+        else:    
+            if "1" in text:
+                search = links[0]
+            elif "2" in text:
+                search = links[1]
+            elif "3" in text:
+                search = links[2]           
+
+        data = get_recipe(search)
+        if ingredients:
+            if len(data[0]) < 1:
+                self.irc.send_dm(self.channel, self.target, "Sorry this site didn't have ingredients")
+                return True
+            for ingred in data[0]:
+                self.irc.send_dm(self.channel, self.target, ingred)
+            self.irc.send_dm(self.channel, self.target, "Would you like to know the recipe? (Yes or No)")
+            self.get_more_info(data,True)
+        else:
+            if data[1] == "":
+                self.irc.send_dm(self.channel, self.target, "Sorry this site didn't have a recipe")
+                return True
+            recipe_list = data[1].split("\n")
+
+            for step in recipe_list:
+                self.irc.send_dm(self.channel, self.target, step)
+            self.irc.send_dm(self.channel, self.target, "Would you like to know the ingredients? (Yes or No)")
+            self.get_more_info(data,False)
+        return True
+    
+    def get_more_info(self,data,data_type):
+        text = self.get_timed_response()
+        # print("DATA",data)
+        # print("Ingredients",data[0])
+        ingredients = data[0]
+        if not text:
+            self.irc.send_dm(self.channel, self.target, "Guess not. Cya!")
+            return
+        if "n" in text.lower():
+            self.irc.send_dm(self.channel, self.target, "Alright. Have fun cooking!")
+            return 
+        if "y" in text.lower() or "s" in text.lower():
+            if data_type == True: # data_type True = get recipe
+                
+                if data[1] == "":
+                    self.irc.send_dm(self.channel, self.target, "Sorry this site didn't have a recipe")
+                    return
+                recipe_list = data[1].split("\n")
+                for step in recipe_list:
+                    self.irc.send_dm(self.channel, self.target, step)
+                self.irc.send_dm(self.channel, self.target, "Alright. Have fun cooking!")
+                return
+            else: # data_type False = get ingredients
+                if len(data[0]) < 1:
+                    self.irc.send_dm(self.channel, self.target, "Sorry this site didn't have ingredients")
+                    return
+                for ingred in ingredients:
+                    self.irc.send_dm(self.channel, self.target, ingred)
+                self.irc.send_dm(self.channel, self.target, "Alright. Have fun cooking!")
+                return
+        
 
     def answer_top5_music_query(self, _text):
         self.set_music_genre()
@@ -573,4 +668,3 @@ class ChatBot:  # init here
 
 if __name__ == "__main__":
     main()
-
