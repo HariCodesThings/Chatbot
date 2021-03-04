@@ -23,3 +23,27 @@ Bot not responded to at all:
 30 seconds pass
 [10:11:33 AM] <Default-bot>  claymanr: Whatever, fine. Don't answer
 
+
+[11:22:15 PM] <HariMadhu> Default2-bot: what were the top 5 songs?
+[11:22:17 PM] <Default2-bot>  HariMadhu: Please specify what genre you would like to see top 5 songs for, you can choose between: `alternative`, `country`, `pop`, or `rap`. Or you can say `all music`, to get top 5 irrespective of genre
+[11:22:23 PM] <HariMadhu> Default2-bot: alternative
+[11:22:25 PM] <Default2-bot>  HariMadhu: The song ranked 1 is:  Drunk (And I Don't Wanna Go Home)
+[11:22:28 PM] <Default2-bot>  HariMadhu: The song ranked 2 is:  Till Forever Falls Apart
+[11:22:31 PM] <Default2-bot>  HariMadhu: The song ranked 3 is:  Not Dead Yet
+[11:22:34 PM] <Default2-bot>  HariMadhu: The song ranked 4 is:  Be Sweet
+[11:22:37 PM] <Default2-bot>  HariMadhu: The song ranked 5 is:  Bed Head
+[11:22:40 PM] <Default2-bot>  HariMadhu: Do you want to check if a particular artist in this top 5 list? Please answer in the form: `artist {artist_first_name} {artist_last_name}`
+[11:22:43 PM] <HariMadhu> Default2-bot: artist Elle King
+[11:22:44 PM] <Default2-bot>  HariMadhu: Artist Elle King & Miranda Lambert sang Drunk (And I Don't Wanna Go Home), which ranked 1 on the top 5 list for alternative
+[11:22:48 PM] <HariMadhu> Default2-bot: what were the top 5 songs in rap?
+[11:22:50 PM] <Default2-bot>  HariMadhu: The song ranked 1 is:  Clown World
+[11:22:53 PM] <Default2-bot>  HariMadhu: The song ranked 2 is:  Beat Box 3 (feat. DaBaby)
+[11:22:56 PM] <Default2-bot>  HariMadhu: The song ranked 3 is:  CLOUDS
+[11:22:59 PM] <Default2-bot>  HariMadhu: The song ranked 4 is:  Beat Box 3 (feat. DaBaby)
+[11:23:02 PM] <Default2-bot>  HariMadhu: The song ranked 5 is:  No More Parties (Remix) [feat. Lil Durk]
+[11:23:05 PM] <Default2-bot>  HariMadhu: Do you want to check if a particular artist in this top 5 list? Please answer in the form: `artist {artist_first_name} {artist_last_name}`
+[11:23:11 PM] <HariMadhu> Default2-bot: artist NF
+[11:23:12 PM] <Default2-bot>  HariMadhu: Artist NF sang CLOUDS, which ranked 3 on the top 5 list for rap
+[11:23:25 PM] <HariMadhu> Default2-bot: did artist NF sing one of the top 5 songs in rap?
+[11:23:27 PM] <Default2-bot>  HariMadhu: Artist NF sang CLOUDS, which ranked 3 on the top 5 list for rap
+
