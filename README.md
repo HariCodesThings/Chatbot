@@ -1,5 +1,4 @@
 # Chatbot
-Speech and Language Processing Lab 4
 
 ## Instructions to run:
 ```pip install -r Packages.txt (to get dependencies in)```
